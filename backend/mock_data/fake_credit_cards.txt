@@ -1,0 +1,41 @@
+# StealthOS Honeypot — Fake Credit Card Numbers (NOT REAL / INVALID LUHN)
+# These are obviously fake test numbers for deception purposes only
+
+Name: John A. Smith
+Card: 4111 1111 1111 1111
+Exp: 12/28
+CVV: 123
+Type: Visa (TEST)
+
+Name: Sarah B. Jones
+Card: 5500 0000 0000 0004
+Exp: 08/27
+CVV: 456
+Type: Mastercard (TEST)
+
+Name: Michael C. Brown
+Card: 3714 4963 5398 431
+Exp: 03/26
+CVV: 7890
+Type: AmEx (TEST)
+
+Name: Emily D. Davis
+Card: 6011 1111 1111 1117
+Exp: 11/29
+CVV: 321
+Type: Discover (TEST)
+
+Name: Robert E. Wilson
+Card: 3566 0020 2036 0505
+Exp: 07/25
+CVV: 654
+Type: JCB (TEST)
+
+Billing Address:
+123 Fake Street
+Testville, CA 90210
+United States
+
+Bank: First National Fake Bank
+Routing: 021000021
+Account: 000123456789

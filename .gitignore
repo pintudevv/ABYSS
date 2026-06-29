@@ -1,0 +1,36 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.ipynb_checkpoints
+.pytest_cache/
+
+# Large datasets and virtual environments
+training/ember2018/
+training/*.tar.bz2
+training/extracted_malware/
+venv/
+.venv/
+env/
+
+# Next.js / Node
+node_modules/
+.next/
+out/
+frontend/node_modules/
+frontend/.next/
+frontend/tsconfig.tsbuildinfo
+
+# Application results
+backend/results/*.json
+backend/results/*.txt
+!backend/results/.gitkeep
+backend/uploads/*
+!backend/uploads/.gitkeep
+
+# IDEs and OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

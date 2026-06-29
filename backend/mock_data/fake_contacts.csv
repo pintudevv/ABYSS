@@ -1,0 +1,16 @@
+first_name,last_name,email,phone,address,company,ssn_fake
+John,Smith,john.smith@fakecorp.com,+1-555-0101,123 Oak Street CA,FakeCorp Inc,XXX-XX-0001
+Sarah,Johnson,sarah.j@example.net,+1-555-0102,456 Pine Ave NY,Example LLC,XXX-XX-0002
+Michael,Williams,mwilliams@testmail.org,+1-555-0103,789 Elm Blvd TX,Test Org,XXX-XX-0003
+Emily,Brown,emily.brown@mailtest.com,+1-555-0104,321 Maple Dr FL,MailTest Co,XXX-XX-0004
+Robert,Jones,r.jones@placeholder.io,+1-555-0105,654 Cedar Ln WA,Placeholder IO,XXX-XX-0005
+Jessica,Davis,jessica.d@dummyemail.com,+1-555-0106,987 Birch Rd IL,Dummy Email Ltd,XXX-XX-0006
+David,Miller,david.miller@fakenet.org,+1-555-0107,147 Spruce Way GA,FakeNet Org,XXX-XX-0007
+Ashley,Wilson,awilson@testdomain.net,+1-555-0108,258 Willow Ct OH,Test Domain Inc,XXX-XX-0008
+James,Moore,j.moore@example-mail.com,+1-555-0109,369 Aspen Blvd NC,Example Mail,XXX-XX-0009
+Jennifer,Taylor,j.taylor@mockdata.io,+1-555-0110,741 Poplar St AZ,MockData Solutions,XXX-XX-0010
+Christopher,Anderson,c.anderson@fakecreds.net,+1-555-0111,852 Magnolia Ave VA,FakeCreds Net,XXX-XX-0011
+Amanda,Thomas,a.thomas@notreal.com,+1-555-0112,963 Chestnut Dr NJ,NotReal Corp,XXX-XX-0012
+Matthew,Jackson,m.jackson@decoy-mail.org,+1-555-0113,159 Redwood Ln TN,Decoy Mail Org,XXX-XX-0013
+Stephanie,White,s.white@honeypot.test,+1-555-0114,357 Sycamore Way IN,Honeypot Test,XXX-XX-0014
+Daniel,Harris,d.harris@sandboxed.io,+1-555-0115,486 Hickory Blvd MO,Sandboxed IO,XXX-XX-0015
