@@ -29,6 +29,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
+
+
 # ---------------------------------------------------------------------------
 # Paths
 # ---------------------------------------------------------------------------
@@ -275,7 +277,7 @@ async def _run_script_with_timeout(script: str, args: list[str], timeout: int) -
         try:
             stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=timeout)
             if proc.returncode != 0:
-                log.warning(f"{script} exited {proc.returncode}: {stderr.decode()[:300]}")
+                log.warning(f"{script} exited {proc.returncode}: {stderr.decode(errors='replace')[:300]}")
                 return False
             return True
         except asyncio.TimeoutError:
@@ -286,7 +288,7 @@ async def _run_script_with_timeout(script: str, args: list[str], timeout: int) -
         log.error(f"Script not found: {script}")
         return False
     except Exception as e:
-        log.error(f"Failed to run {script}: {e}")
+        log.error(f"Failed to run {script}: {e}", exc_info=True)
         return False
 
 
@@ -297,6 +299,9 @@ async def _run_script_with_timeout(script: str, args: list[str], timeout: int) -
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup
+    import sys
+    if sys.platform == "win32":
+        asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
     _load_cache()
     log.info("StealthOS API started — hash cache loaded")
     yield

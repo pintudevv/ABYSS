@@ -1,0 +1,83 @@
+{
+  "file": "66673489-a62e-4f57-b149-9247bb680274_test_suspicious.exe",
+  "sha256": "38cd71a5b5624306f8e7bac07e249eb99758eee8231bb4f17926dd6ead8bb854",
+  "analysis_timestamp": "2026-07-08T13:21:00.609098Z",
+  "ml_verdict": {
+    "threat_type": "Trojan",
+    "confidence": 83,
+    "is_zero_day": false,
+    "risk_level": "HIGH",
+    "shap_explanation": [
+      {
+        "feature": "data_directory_4",
+        "value": 0.0,
+        "impact": 0.6301703453063965
+      },
+      {
+        "feature": "header_info_0",
+        "value": 1782751232.0,
+        "impact": 0.4027109146118164
+      },
+      {
+        "feature": "import_api_hash_30",
+        "value": 0.0,
+        "impact": -0.3457563817501068
+      },
+      {
+        "feature": "string_info_84",
+        "value": 0.0015275287441909313,
+        "impact": -0.34078046679496765
+      },
+      {
+        "feature": "header_info_28",
+        "value": 1.0,
+        "impact": -0.20930613577365875
+      },
+      {
+        "feature": "string_info_3",
+        "value": 0.00943082943558693,
+        "impact": 0.20273134112358093
+      },
+      {
+        "feature": "data_directory_13",
+        "value": 0.0,
+        "impact": 0.19050931930541992
+      },
+      {
+        "feature": "data_directory_8",
+        "value": 0.0,
+        "impact": 0.1869831085205078
+      },
+      {
+        "feature": "header_info_11",
+        "value": 0.0,
+        "impact": 0.17662174999713898
+      },
+      {
+        "feature": "string_info_66",
+        "value": 0.10440326482057571,
+        "impact": -0.15532168745994568
+      }
+    ],
+    "classifier_used": "xgboost_rf_autoencoder",
+    "decision_path": [
+      "XGBoost Classifier predicts class 1 (malicious probability: 71.2%)",
+      "Random Forest Classifier predicts class 1 (malicious probability: 55.4%)",
+      "Autoencoder Reconstruction Loss: 69060608000.0 (Zero-Day: False)",
+      "Dangerous PE API imports: 1 (+4)",
+      "Suspicious string matches: 9 (+20)"
+    ]
+  },
+  "dynamic_verdict": {
+    "dynamic_skipped": true,
+    "skip_reason": "behavior.json not found \u2014 sandbox was not run"
+  },
+  "final_verdict": {
+    "label": "malicious",
+    "confidence": 83,
+    "threat_type": "Trojan",
+    "risk_level": "HIGH",
+    "is_zero_day": false,
+    "reasoning": "ML (xgboost_rf_autoencoder): Trojan at 83% confidence | Dynamic \u2014 behavior.json not found \u2014 sandbox was not run"
+  }
+}
