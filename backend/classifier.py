@@ -421,52 +421,241 @@ class StealthClassifier:
 
 
 # ---------------------------------------------------------------------------
+# Dynamic + Final verdict builders
+# ---------------------------------------------------------------------------
+
+def _build_dynamic_verdict(behavior_data: dict, dynamic_skipped: bool,
+                            skip_reason: str | None) -> dict:
+    """Extract real Frida behavioral data into a structured dynamic verdict."""
+    if dynamic_skipped:
+        return {"dynamic_skipped": True, "skip_reason": skip_reason}
+
+    api_calls = behavior_data.get("api_calls", [])
+    api_names = {call.get("api", "") for call in api_calls}
+
+    return {
+        "dynamic_skipped": False,
+        "mock_mode": False,
+        "analysis_duration_seconds": behavior_data.get("analysis_duration_seconds", 0),
+        "api_calls": api_calls,
+        "file_operations": behavior_data.get("file_operations", []),
+        "processes": behavior_data.get("processes", []),
+        "network_connections": behavior_data.get("network_connections", []),
+        "registry_operations": behavior_data.get("registry_operations", []),
+        "score": behavior_data.get("score", 0),
+        "behavioral_indicators": {
+            "trojan_apis":     sorted(api_names & TROJAN_APIS),
+            "ransomware_apis": sorted(api_names & RANSOMWARE_APIS),
+            "spyware_apis":    sorted(api_names & SPYWARE_APIS),
+            "network_apis":    sorted(api_names & NETWORK_APIS),
+        },
+    }
+
+
+def _build_final_verdict(ml_result: dict, dynamic_verdict: dict) -> dict:
+    """Combine ML verdict + dynamic behavioral indicators into one final verdict."""
+    ml_confidence = ml_result.get("confidence", 0)
+    ml_threat     = ml_result.get("threat_type", "Clean")
+    reasoning     = [
+        f"ML ({ml_result.get('classifier_used', 'heuristic')}): "
+        f"{ml_threat} at {ml_confidence}% confidence"
+    ]
+
+    threat_type    = ml_threat
+    final_conf     = ml_confidence
+    dynamic_boost  = 0
+
+    if not dynamic_verdict.get("dynamic_skipped", True):
+        ind = dynamic_verdict.get("behavioral_indicators", {})
+        trojan_hits  = ind.get("trojan_apis", [])
+        ransom_hits  = ind.get("ransomware_apis", [])
+        spyware_hits = ind.get("spyware_apis", [])
+
+        if trojan_hits:
+            dynamic_boost += min(len(trojan_hits) * 10, 20)
+            reasoning.append(f"Dynamic — trojan APIs: {trojan_hits}")
+            if threat_type == "Clean":
+                threat_type = "Trojan"
+        if ransom_hits:
+            dynamic_boost += min(len(ransom_hits) * 10, 20)
+            reasoning.append(f"Dynamic — ransomware APIs: {ransom_hits}")
+            if threat_type == "Clean":
+                threat_type = "Ransomware"
+        if spyware_hits:
+            dynamic_boost += min(len(spyware_hits) * 10, 20)
+            reasoning.append(f"Dynamic — spyware APIs: {spyware_hits}")
+            if threat_type == "Clean":
+                threat_type = "Spyware"
+
+        api_count = len(dynamic_verdict.get("api_calls", []))
+        reasoning.append(f"Dynamic — {api_count} API call(s) captured by Frida hooks")
+        final_conf = min(ml_confidence + dynamic_boost, 100)
+    else:
+        reasoning.append(f"Dynamic — {dynamic_verdict.get('skip_reason', 'skipped')}")
+
+    # Risk level from final confidence
+    if final_conf >= 85:   risk_level = "CRITICAL"
+    elif final_conf >= 60: risk_level = "HIGH"
+    elif final_conf >= 35: risk_level = "MEDIUM"
+    elif final_conf >= 15: risk_level = "LOW"
+    else:                  risk_level = "CLEAN"
+
+    label = ("benign" if (threat_type == "Clean" or final_conf < 15)
+             else "suspicious" if final_conf < 40
+             else "malicious")
+
+    return {
+        "label":      label,
+        "confidence": final_conf,
+        "threat_type": threat_type,
+        "risk_level":  risk_level,
+        "is_zero_day": ml_result.get("is_zero_day", False),
+        "reasoning":   " | ".join(reasoning),
+    }
+
+
+# ---------------------------------------------------------------------------
 # Entry
 # ---------------------------------------------------------------------------
+
 def main():
+    import hashlib
+    from datetime import datetime as _dt
+
     parser = argparse.ArgumentParser(description="StealthOS Classifier — Step 4")
+    parser.add_argument("file", nargs="?", default=None,
+                        help="File to analyse (optional — used to run static analysis if features.json missing)")
     parser.add_argument("--features", default=str(RESULTS_DIR / "features.json"))
     parser.add_argument("--behavior", default=str(RESULTS_DIR / "behavior.json"))
-    parser.add_argument("--output", default=str(RESULTS_DIR))
+    parser.add_argument("--output",   default=str(RESULTS_DIR))
     args = parser.parse_args()
 
     features_path = Path(args.features)
     behavior_path = Path(args.behavior)
-    output_dir = Path(args.output)
+    output_dir    = Path(args.output)
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    # If a file was given and features are missing, run static_analysis.py first
+    if args.file and not features_path.exists():
+        file_path = Path(args.file)
+        if not file_path.exists():
+            log.error(f"File not found: {file_path}")
+            sys.exit(1)
+        log.info(f"features.json missing — running static_analysis.py on {file_path.name}")
+        import subprocess
+        static_script = BASE_DIR / "static_analysis.py"
+        r = subprocess.run(
+            [sys.executable, str(static_script), str(file_path), "--output", str(output_dir)],
+            capture_output=True, text=True
+        )
+        if r.returncode != 0:
+            log.warning(f"static_analysis.py returned {r.returncode}: {r.stderr[:300]}")
 
     if not features_path.exists():
-        log.error(f"Features JSON file missing: {features_path}")
-        sys.exit(1)
-    if not behavior_path.exists():
-        log.error(f"Behavior JSON file missing: {behavior_path}")
+        log.error(f"Features JSON missing: {features_path}")
         sys.exit(1)
 
     try:
         static_data = json.loads(features_path.read_text(encoding="utf-8"))
-        behavior_data = json.loads(behavior_path.read_text(encoding="utf-8"))
     except Exception as e:
-        log.error(f"Failed to read input files: {e}")
+        log.error(f"Cannot read features.json: {e}")
         sys.exit(1)
 
+    # ---- Load behavior.json — reject mock data, skip cleanly if absent ----
+    dynamic_skipped   = False
+    dynamic_skip_reason: str | None = None
+    behavior_data: dict = {}
+
+    if not behavior_path.exists():
+        dynamic_skipped    = True
+        dynamic_skip_reason = "behavior.json not found — sandbox was not run"
+        log.info("behavior.json absent — dynamic_verdict will be skipped")
+    else:
+        try:
+            raw_behavior = json.loads(behavior_path.read_text(encoding="utf-8"))
+        except Exception as e:
+            log.error(f"Cannot read behavior.json: {e}")
+            sys.exit(1)
+
+        if raw_behavior.get("mock_mode", False):
+            dynamic_skipped    = True
+            dynamic_skip_reason = "behavior.json has mock_mode=true — real sandbox output required"
+            log.info("behavior.json is mock — dynamic_verdict marked as skipped (no mock data used)")
+        else:
+            behavior_data = raw_behavior
+            log.info(f"behavior.json loaded — mock_mode=False, "
+                     f"{len(behavior_data.get('api_calls', []))} API call(s)")
+
+    # ---- ML classification ----
     classifier = StealthClassifier()
-    result = classifier.run_classification(static_data, behavior_data)
+    ml_verdict = classifier.run_classification(static_data, behavior_data)
 
-    output_file = output_dir / "classification_result.json"
-    output_file.write_text(json.dumps(result, indent=2), encoding="utf-8")
-    log.info(f"Classification result saved to {output_file}")
+    # ---- Dynamic verdict ----
+    dynamic_verdict = _build_dynamic_verdict(behavior_data, dynamic_skipped, dynamic_skip_reason)
 
-    print("\n" + "=" * 50)
-    print("  STEALTHOS — CLASSIFICATION RESULT")
-    print("=" * 50)
-    print(f"  Threat Type   : {result['threat_type']}")
-    print(f"  Confidence    : {result['confidence']}%")
-    print(f"  Risk Level    : {result['risk_level']}")
-    print(f"  Is Zero-Day   : {result['is_zero_day']}")
-    print("\n  Decision Path:")
-    for path in result["decision_path"]:
-        print(f"    - {path}")
-    print("=" * 50 + "\n")
+    # ---- Final combined verdict ----
+    final_verdict = _build_final_verdict(ml_verdict, dynamic_verdict)
+
+    # ---- Build unified output ----
+    file_name = Path(args.file).name if args.file else "unknown"
+    file_hash = ""
+    if args.file:
+        fp = Path(args.file)
+        if fp.exists():
+            with open(fp, "rb") as fh:
+                file_hash = hashlib.sha256(fh.read()).hexdigest()
+
+    unified = {
+        "file":               file_name,
+        "sha256":             file_hash,
+        "analysis_timestamp": _dt.utcnow().isoformat() + "Z",
+        "ml_verdict":         ml_verdict,
+        "dynamic_verdict":    dynamic_verdict,
+        "final_verdict":      final_verdict,
+    }
+
+    out_path = output_dir / "classification_result.json"
+    out_path.write_text(json.dumps(unified, indent=2), encoding="utf-8")
+    log.info(f"Unified result → {out_path}")
+
+    # ---- Print summary ----
+    dv = dynamic_verdict
+    fv = final_verdict
+    mv = ml_verdict
+    print("\n" + "=" * 60)
+    print("  STEALTHOS — UNIFIED CLASSIFICATION RESULT")
+    print("=" * 60)
+    print(f"  File          : {file_name}")
+    if file_hash:
+        print(f"  SHA-256       : {file_hash[:16]}...")
+    print()
+    print("  ML VERDICT:")
+    print(f"    Threat Type : {mv['threat_type']}")
+    print(f"    Confidence  : {mv['confidence']}%")
+    print(f"    Risk Level  : {mv['risk_level']}")
+    print(f"    Classifier  : {mv['classifier_used']}")
+    print()
+    print("  DYNAMIC VERDICT:")
+    if dv.get("dynamic_skipped"):
+        print(f"    Status      : SKIPPED — {dv.get('skip_reason')}")
+    else:
+        print(f"    API Calls   : {len(dv.get('api_calls', []))}")
+        print(f"    File Ops    : {len(dv.get('file_operations', []))}")
+        print(f"    Processes   : {len(dv.get('processes', []))}")
+        ind = dv.get("behavioral_indicators", {})
+        for k, v in ind.items():
+            if v:
+                print(f"    {k.replace('_', ' ').title()}: {v}")
+    print()
+    print("  FINAL VERDICT:")
+    print(f"    Label       : {fv['label'].upper()}")
+    print(f"    Confidence  : {fv['confidence']}%")
+    print(f"    Threat Type : {fv['threat_type']}")
+    print(f"    Risk Level  : {fv['risk_level']}")
+    print(f"    Reasoning   : {fv['reasoning']}")
+    print("=" * 60 + "\n")
 
 
 if __name__ == "__main__":
     main()
+
