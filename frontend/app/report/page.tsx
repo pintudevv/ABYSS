@@ -1,10 +1,10 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { getReport, downloadReport, ThreatReport, formatFileSize, formatDuration } from "../../lib/api";
 
-export default function ReportPage() {
+function ReportPageInner() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const taskId = searchParams.get("task");
@@ -159,11 +159,11 @@ export default function ReportPage() {
                     className={`fill-transparent transition-all duration-1000 ${is_threat ? "stroke-rose-500" : "stroke-emerald-500"}`} 
                     strokeWidth="6" 
                     strokeDasharray={2 * Math.PI * 34}
-                    strokeDashoffset={2 * Math.PI * 34 * (1 - confidence / 100)}
+                    strokeDashoffset={2 * Math.PI * 34 * (1 - confidence)}
                   />
                 </svg>
                 <div className="absolute flex flex-col items-center justify-center">
-                  <span className="text-base font-extrabold text-white mt-1 leading-none">{confidence}%</span>
+                  <span className="text-base font-extrabold text-white mt-1 leading-none">{Math.round(confidence * 100)}%</span>
                   <span className="text-[8px] font-mono text-gray-400 mt-0.5 leading-none">CONFIDENCE</span>
                 </div>
               </div>
@@ -342,5 +342,13 @@ export default function ReportPage() {
 
       </div>
     </div>
+  );
+}
+
+export default function ReportPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-[#050508] text-gray-100 flex items-center justify-center"><div className="w-12 h-12 rounded-full border-t-2 border-indigo-500 animate-spin" /></div>}>
+      <ReportPageInner />
+    </Suspense>
   );
 }

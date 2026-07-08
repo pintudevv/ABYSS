@@ -201,6 +201,90 @@ export async function getStatus(taskId: string): Promise<StatusResponse> {
   return apiFetch<StatusResponse>(`/status/${sanitized}`);
 }
 
+export interface BackendReport {
+  task_id: string;
+  filename: string;
+  file_hash_sha256: string;
+  analysis_duration_seconds: number;
+  threat_detected: boolean;
+  threat_type: string;
+  confidence: number;
+  risk_level: string;
+  is_zero_day: boolean;
+  classifier_used: string;
+  classification: {
+    final_verdict: {
+      label: string;
+      confidence: number;
+      threat_type: string;
+      risk_level: string;
+      reasoning: string;
+    };
+    ml_verdict: {
+      threat_type: string;
+      confidence: number;
+      shap_explanation: Array<{
+        feature: string;
+        value: number;
+        impact: number;
+      }>;
+      decision_path: string[];
+    };
+    dynamic_verdict: {
+      dynamic_skipped?: boolean;
+      skip_reason?: string;
+      mock_mode: boolean;
+      api_calls: Array<{
+        timestamp: string;
+        process: string;
+        api: string;
+        category: string;
+        status: number;
+        return_value: string;
+        arguments: string[];
+      }>;
+      file_operations: Array<{
+        path: string;
+        operation: string;
+        suspicious: boolean;
+      }>;
+      processes: Array<{
+        name: string;
+        pid: number;
+        parent_pid: number;
+        command_line: string;
+      }>;
+      network_connections?: Array<{
+        dst_ip: string;
+        dst_port: number;
+        protocol: string;
+        domain: string;
+      }>;
+      registry_operations: Array<{
+        key: string;
+        operation: string;
+        blocked: boolean;
+      }>;
+      behavioral_indicators?: {
+        trojan_apis?: string[];
+        ransomware_apis?: string[];
+        spyware_apis?: string[];
+        network_apis?: string[];
+      };
+    };
+  };
+  static_features?: {
+    file_info?: {
+      file_size?: number;
+      file_type?: string;
+      md5?: string;
+    };
+    heuristic_risk?: {
+      score?: number;
+    };
+  };
+}
+
 /**
  * Fetch the full threat report once analysis is complete.
  */
@@ -209,7 +293,77 @@ export async function getReport(taskId: string): Promise<ThreatReport> {
     throw new ApiError(400, 'Invalid task ID');
   }
   const sanitized = encodeURIComponent(taskId);
-  return apiFetch<ThreatReport>(`/results/${sanitized}`);
+  const backendData = await apiFetch<BackendReport>(`/results/${sanitized}`);
+
+  const shapExpl = backendData.classification?.ml_verdict?.shap_explanation || [];
+  const maxAbsImpact = shapExpl.reduce((max, f) => Math.max(max, Math.abs(f.impact)), 0) || 1;
+
+  const shap_features: ShapFeature[] = shapExpl.map(f => ({
+    name: f.feature,
+    impact: Math.abs(f.impact) / maxAbsImpact,
+    direction: f.impact >= 0 ? 'positive' : 'negative',
+    value: String(f.value),
+  }));
+
+  const apiCalls = backendData.classification?.dynamic_verdict?.api_calls || [];
+  const trojanApis = backendData.classification?.dynamic_verdict?.behavioral_indicators?.trojan_apis || [];
+  const api_hooks: ApiHook[] = apiCalls.map(c => ({
+    function_name: c.api,
+    module: "monitored",
+    call_count: 1,
+    args_summary: Array.isArray(c.arguments) && c.arguments.length > 0 ? String(c.arguments[0]) : "",
+    severity: trojanApis.includes(c.api) ? "high" : "low",
+  }));
+
+  const fileOps = backendData.classification?.dynamic_verdict?.file_operations || [];
+  const stolen_files: StolenFile[] = fileOps.map(f => ({
+    path: f.path,
+    type: "document",
+    blocked: false,
+  }));
+
+  const netConns = backendData.classification?.dynamic_verdict?.network_connections || [];
+  const exfil_endpoints: ExfilEndpoint[] = netConns.map(n => ({
+    ip: n.dst_ip || "",
+    domain: n.domain || "",
+    port: n.dst_port || 80,
+    country: "",
+    country_flag: "🌐",
+    protocol: n.protocol || "TCP",
+    sinkholed: true,
+  }));
+
+  const decisionPath = backendData.classification?.ml_verdict?.decision_path || [];
+  const timeline: TimelineEvent[] = decisionPath.map(item => ({
+    timestamp: new Date().toISOString(),
+    type: "process",
+    description: item,
+    severity: "medium",
+    details: "",
+  }));
+
+  return {
+    task_id: backendData.task_id || taskId,
+    filename: backendData.filename,
+    file_size: backendData.static_features?.file_info?.file_size || 0,
+    file_type: backendData.static_features?.file_info?.file_type || "Unknown",
+    sha256: backendData.file_hash_sha256 || "",
+    md5: backendData.static_features?.file_info?.md5 || "",
+    analysis_duration_seconds: backendData.analysis_duration_seconds || 0,
+    is_threat: backendData.threat_detected,
+    threat_type: backendData.threat_type as ThreatType,
+    confidence: backendData.confidence / 100,
+    is_zero_day: backendData.is_zero_day || false,
+    stolen_files,
+    exfil_endpoints,
+    mock_data_served: [],
+    api_hooks,
+    shap_features,
+    timeline,
+    risk_score: backendData.static_features?.heuristic_risk?.score || backendData.confidence,
+    risk_level: backendData.risk_level,
+    verdict_message: backendData.classification?.final_verdict?.reasoning || "",
+  };
 }
 
 /**
