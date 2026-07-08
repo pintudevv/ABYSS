@@ -535,21 +535,31 @@ def main():
     output_dir    = Path(args.output)
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    # If a file was given and features are missing, run static_analysis.py first
-    if args.file and not features_path.exists():
+    # If a file was given, run static_analysis.py when features.json is missing
+    # OR when features.json was computed for a *different* file (fixes the filepath quirk).
+    if args.file:
         file_path = Path(args.file)
         if not file_path.exists():
             log.error(f"File not found: {file_path}")
             sys.exit(1)
-        log.info(f"features.json missing — running static_analysis.py on {file_path.name}")
-        import subprocess
-        static_script = BASE_DIR / "static_analysis.py"
-        r = subprocess.run(
-            [sys.executable, str(static_script), str(file_path), "--output", str(output_dir)],
-            capture_output=True, text=True
-        )
-        if r.returncode != 0:
-            log.warning(f"static_analysis.py returned {r.returncode}: {r.stderr[:300]}")
+        features_match = False
+        if features_path.exists():
+            try:
+                _existing = json.loads(features_path.read_text(encoding="utf-8"))
+                _stored_fp = _existing.get("file_info", {}).get("filepath", "")
+                features_match = Path(_stored_fp).resolve() == file_path.resolve()
+            except Exception:
+                pass
+        if not features_match:
+            log.info(f"Running static_analysis.py for {file_path.name} (features.json mismatch or missing)...")
+            import subprocess as _sp
+            _r = _sp.run(
+                [sys.executable, str(BASE_DIR / "static_analysis.py"),
+                 str(file_path), "--output", str(output_dir)],
+                capture_output=True, text=True
+            )
+            if _r.returncode != 0:
+                log.warning(f"static_analysis.py exited {_r.returncode}: {_r.stderr[:300]}")
 
     if not features_path.exists():
         log.error(f"Features JSON missing: {features_path}")

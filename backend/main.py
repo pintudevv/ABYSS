@@ -206,7 +206,10 @@ async def _run_pipeline(task_id: str, file_path: Path, sha256: str) -> None:
         _update_task(task_id, "classifier", 55, "Running ML classification pipeline...")
         await _run_script_with_timeout(
             "classifier.py",
-            ["--features", str(task_dir / "features.json"),
+            # Pass file_path so classifier.py populates file/sha256 in unified output.
+            # features.json already exists from Stage 1, so filepath-match check skips re-run.
+            [str(file_path),
+             "--features", str(task_dir / "features.json"),
              "--behavior", str(task_dir / "behavior.json"),
              "--output", str(task_dir)],
             timeout=60
@@ -461,17 +464,43 @@ async def get_results(task_id: str):
         )
 
     task_dir = RESULTS_DIR / task_id
-    features = _load_json_safe(task_dir / "features.json")
-    behavior = _load_json_safe(task_dir / "behavior.json")
+    features     = _load_json_safe(task_dir / "features.json")
+    behavior     = _load_json_safe(task_dir / "behavior.json")
     classification = _load_json_safe(task_dir / "classification_result.json")
-    deception = _load_json_safe(task_dir / "deception_log.json")
-    forensic = _load_json_safe(task_dir / "forensic_report.json")
+    deception    = _load_json_safe(task_dir / "deception_log.json")
+    forensic     = _load_json_safe(task_dir / "forensic_report.json")
+
+    # Support new nested structure (final_verdict / ml_verdict) with fallback to old flat keys
+    final_v  = classification.get("final_verdict", {})
+    ml_v     = classification.get("ml_verdict", {})
+    dyn_v    = classification.get("dynamic_verdict", {})
+
+    def _resolve(*dicts_then_default):
+        """Return first non-None/non-empty value across dicts, last arg is the default."""
+        *dicts, default = dicts_then_default
+        for d in dicts:
+            if isinstance(d, dict):
+                v = d.get(list(d.keys())[0] if d else None)
+        return default
+
+    threat_type    = (final_v.get("threat_type") or ml_v.get("threat_type")
+                      or classification.get("threat_type", "Clean"))
+    confidence     = (final_v.get("confidence") or ml_v.get("confidence")
+                      or classification.get("confidence", 0))
+    risk_level     = (final_v.get("risk_level") or ml_v.get("risk_level")
+                      or classification.get("risk_level", "CLEAN"))
+    is_zero_day    = (final_v.get("is_zero_day") or ml_v.get("is_zero_day")
+                      or classification.get("is_zero_day", False))
+    classifier_used = (ml_v.get("classifier_used")
+                       or classification.get("classifier_used", "heuristic"))
+    # Use dynamic_verdict for behavior_report if present, else fall back to raw behavior.json
+    behavior_report = dyn_v if dyn_v else behavior
 
     started_at_str = task.get("started_at", datetime.now().isoformat())
     updated_at_str = task.get("updated_at", datetime.now().isoformat())
     try:
-        started = datetime.fromisoformat(started_at_str)
-        updated = datetime.fromisoformat(updated_at_str)
+        started  = datetime.fromisoformat(started_at_str)
+        updated  = datetime.fromisoformat(updated_at_str)
         duration = (updated - started).total_seconds()
     except Exception:
         duration = 0.0
@@ -481,15 +510,15 @@ async def get_results(task_id: str):
         filename=task.get("filename", "unknown"),
         file_hash_sha256=task.get("sha256", ""),
         analysis_duration_seconds=duration,
-        threat_detected=classification.get("threat_type", "Clean") != "Clean",
-        threat_type=classification.get("threat_type", "Clean"),
-        confidence=classification.get("confidence", 0),
-        risk_level=classification.get("risk_level", "CLEAN"),
-        is_zero_day=classification.get("is_zero_day", False),
-        classifier_used=classification.get("classifier_used", "heuristic"),
+        threat_detected=threat_type != "Clean",
+        threat_type=threat_type,
+        confidence=confidence,
+        risk_level=risk_level,
+        is_zero_day=is_zero_day,
+        classifier_used=classifier_used,
         executive_summary=forensic.get("executive_summary", {}),
         static_features=features,
-        behavior_report=behavior,
+        behavior_report=behavior_report,
         classification=classification,
         deception_log=deception,
         forensic_report=forensic,
