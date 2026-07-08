@@ -12,6 +12,7 @@ from __future__ import annotations
 import argparse
 import json
 import logging
+import os
 import random
 import sys
 import time
@@ -66,9 +67,14 @@ def _vbox_restore() -> bool:
     res = _run_vboxmanage(["snapshot", VM_NAME, "restore", SNAPSHOT_NAME])
     return res.returncode == 0
 
-def _wait_for_guest_additions(timeout: int = 120) -> bool:
-    """Polls a simple command in the guest to verify Guest Additions are ready."""
+def _wait_for_guest_additions(timeout: int = 180) -> bool:
+    """Polls a simple command in the guest to verify Guest Additions are ready.
+    Allows up to 180s for full headless Windows boot with AutoLogon (~60-70s typically).
+    """
     log.info("Waiting for Guest Additions to become active...")
+    # Give Windows time to complete boot before first poll
+    log.info("Initial 35s grace period for Windows boot + AutoLogon...")
+    time.sleep(35)
     start_time = time.time()
     while time.time() - start_time < timeout:
         res = _run_vboxmanage([
@@ -81,11 +87,11 @@ def _wait_for_guest_additions(timeout: int = 120) -> bool:
         if res.returncode == 0:
             log.info("Guest Additions are active and responsive!")
             return True
-        time.sleep(4)
+        time.sleep(5)
     return False
 
 def _vbox_start() -> bool:
-    """Starts the VM headless and polls status until 'running'."""
+    """Starts the VM headless (live snapshot with defaultfrontend=headless) and polls until 'running'."""
     log.info("Starting VM headless...")
     res = _run_vboxmanage(["startvm", VM_NAME, "--type", "headless"])
     if res.returncode != 0:
@@ -108,6 +114,8 @@ def _vbox_start() -> bool:
     return False
 
 def _vbox_copyto(host_path: Path, guest_dir: str) -> bool:
+    if not guest_dir.endswith("\\"):
+        guest_dir = guest_dir + "\\"
     """Copies a file from the host into the guest."""
     log.info(f"Copying {host_path.name} to guest directory {guest_dir}...")
     res = _run_vboxmanage([
@@ -127,16 +135,22 @@ def _vbox_run(exe_path: str, args: list[str]) -> bool:
         "--exe", exe_path,
         "--username", GUEST_USER,
         "--password", GUEST_PASS,
+        "--timeout", "150000",
         "--"
     ] + args)
+    log.info(f"GUEST STDOUT:\n{res.stdout}")
+    log.info(f"GUEST STDERR:\n{res.stderr}")
     return res.returncode == 0
 
 def _vbox_copyfrom(guest_path: str, host_path: Path) -> bool:
+    target_dir_str = str(host_path.parent)
+    if not target_dir_str.endswith("\\"):
+        target_dir_str = target_dir_str + "\\"
     """Copies a file from the guest back to the host."""
     log.info(f"Copying {guest_path} back from guest to {host_path}...")
     res = _run_vboxmanage([
         "guestcontrol", VM_NAME, "copyfrom",
-        f"--target-directory={str(host_path.parent)}",
+        f"--target-directory={target_dir_str}",
         "--username", GUEST_USER,
         "--password", GUEST_PASS,
         guest_path
@@ -368,8 +382,11 @@ def run_sandbox(file_path: Path, output_dir: Path) -> dict:
             guest_behavior_json
         ]
         
-        if not _vbox_run(GUEST_PYTHON, run_args):
-            raise RuntimeError("Failed to execute guest_sandbox.py monitor script inside guest VM.")
+        run_ok = _vbox_run(GUEST_PYTHON, run_args)
+        # Even if VBoxManage timed out (VERR_TIMEOUT), the script may have
+        # completed and written the result file — always attempt to copy it.
+        if not run_ok:
+            log.warning("guestcontrol run returned non-zero; attempting to copy result anyway (VERR_TIMEOUT case).")
 
         # 6. Copy behavior_result.json back to output_dir / behavior.json
         out_path = output_dir / "behavior.json"

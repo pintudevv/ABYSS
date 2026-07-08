@@ -19,6 +19,26 @@ def main():
     # Frida JavaScript hooking script
     js_code = """
     'use strict';
+    var _cachedModules = null;
+    
+    function findFunc(name) {
+        // Try static API (Frida older versions)
+        try {
+            var p = Module.findExportByName(null, name);
+            if (p) return p;
+        } catch(e) {}
+        // Try instance-based search via cached module list (Frida 16+/17.x)
+        try {
+            if (!_cachedModules) _cachedModules = Process.enumerateModules();
+            for (var i = 0; i < _cachedModules.length; i++) {
+                try {
+                    var addr = _cachedModules[i].findExportByName(name);
+                    if (addr) return addr;
+                } catch(ex) {}
+            }
+        } catch(e2) {}
+        return null;
+    }
     
     function logCall(api, details) {
         send(JSON.stringify({
@@ -28,7 +48,7 @@ def main():
     }
     
     // Hook CreateFile
-    var pCreateFileW = Module.findExportByName("kernel32.dll", "CreateFileW");
+    var pCreateFileW = findFunc("CreateFileW");
     if (pCreateFileW) {
         Interceptor.attach(pCreateFileW, {
             onEnter: function(args) {
@@ -40,7 +60,7 @@ def main():
         });
     }
     
-    var pCreateFileA = Module.findExportByName("kernel32.dll", "CreateFileA");
+    var pCreateFileA = findFunc("CreateFileA");
     if (pCreateFileA) {
         Interceptor.attach(pCreateFileA, {
             onEnter: function(args) {
@@ -53,7 +73,7 @@ def main():
     }
     
     // Hook RegOpenKeyEx
-    var pRegOpenKeyExW = Module.findExportByName("advapi32.dll", "RegOpenKeyExW");
+    var pRegOpenKeyExW = findFunc("RegOpenKeyExW");
     if (pRegOpenKeyExW) {
         Interceptor.attach(pRegOpenKeyExW, {
             onEnter: function(args) {
@@ -64,7 +84,7 @@ def main():
             }
         });
     }
-    var pRegOpenKeyExA = Module.findExportByName("advapi32.dll", "RegOpenKeyExA");
+    var pRegOpenKeyExA = findFunc("RegOpenKeyExA");
     if (pRegOpenKeyExA) {
         Interceptor.attach(pRegOpenKeyExA, {
             onEnter: function(args) {
@@ -77,7 +97,7 @@ def main():
     }
     
     // Hook VirtualAllocEx
-    var pVirtualAllocEx = Module.findExportByName("kernel32.dll", "VirtualAllocEx");
+    var pVirtualAllocEx = findFunc("VirtualAllocEx");
     if (pVirtualAllocEx) {
         Interceptor.attach(pVirtualAllocEx, {
             onEnter: function(args) {
@@ -87,7 +107,7 @@ def main():
     }
     
     // Hook WriteProcessMemory
-    var pWriteProcessMemory = Module.findExportByName("kernel32.dll", "WriteProcessMemory");
+    var pWriteProcessMemory = findFunc("WriteProcessMemory");
     if (pWriteProcessMemory) {
         Interceptor.attach(pWriteProcessMemory, {
             onEnter: function(args) {
@@ -97,7 +117,7 @@ def main():
     }
     
     // Hook CreateRemoteThread
-    var pCreateRemoteThread = Module.findExportByName("kernel32.dll", "CreateRemoteThread");
+    var pCreateRemoteThread = findFunc("CreateRemoteThread");
     if (pCreateRemoteThread) {
         Interceptor.attach(pCreateRemoteThread, {
             onEnter: function(args) {
@@ -107,7 +127,7 @@ def main():
     }
     
     // Hook CryptEncrypt
-    var pCryptEncrypt = Module.findExportByName("advapi32.dll", "CryptEncrypt");
+    var pCryptEncrypt = findFunc("CryptEncrypt");
     if (pCryptEncrypt) {
         Interceptor.attach(pCryptEncrypt, {
             onEnter: function(args) {
@@ -117,7 +137,7 @@ def main():
     }
     
     // Hook Connect
-    var connectPtr = Module.findExportByName("ws2_32.dll", "connect");
+    var connectPtr = findFunc("connect");
     if (connectPtr) {
         Interceptor.attach(connectPtr, {
             onEnter: function(args) {
@@ -135,21 +155,35 @@ def main():
     def on_message(message, data):
         if message['type'] == 'send':
             payload = json.loads(message['payload'])
+            if payload.get('api') == '__frida_ready__':
+                print(f"FRIDA HOOKS INSTALLED: {payload.get('details', '')}")
+                return
             api_calls_log.append({
                 "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
                 "api": payload["api"],
                 "details": payload["details"]
             })
+        elif message['type'] == 'error':
+            print(f"FRIDA SCRIPT ERROR: {message.get('description', message)}")
+            print(f"STACK: {message.get('stack', 'no stack')}")
             
     script = session.create_script(js_code)
     script.on('message', on_message)
-    script.load()
+    try:
+        script.load()
+    except Exception as e:
+        print(f"SCRIPT LOAD FAILED: {e}")
     
     device.resume(pid)
     print("Frida script loaded. Resuming process and monitoring for 30s...")
     time.sleep(30)
     
     print("Detaching session...")
+    # Kill target first so session.detach() doesn't hang
+    try:
+        device.kill(pid)
+    except Exception:
+        pass
     try:
         session.detach()
     except Exception:
