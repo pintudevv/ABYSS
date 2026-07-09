@@ -789,7 +789,7 @@ function VerdictFooter({
               {verdictMessage}
             </p>
             <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)' }}>
-              Protected by StealthOS Deception Engine
+              Protected by ABYSS Deception Engine
             </p>
           </div>
         </div>

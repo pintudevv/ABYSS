@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "StealthOS — Hybrid ML Malware Sandbox & Deception",
+  title: "ABYSS — Hybrid ML Malware Sandbox & Deception",
   description: "Semester project malware instrumentation, analysis, and forensics panel.",
 };
 

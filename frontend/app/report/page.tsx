@@ -42,7 +42,7 @@ function ReportPageInner() {
       const url = await downloadReport(taskId);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `stealthos_forensic_report_${taskId.slice(0, 8)}.txt`;
+      a.download = `abyss_forensic_report_${taskId.slice(0, 8)}.txt`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -105,7 +105,7 @@ function ReportPageInner() {
               </svg>
             </div>
             <div>
-              <span className="font-bold text-sm tracking-wider">STEALTHOS</span>
+              <span className="font-bold text-sm tracking-wider">ABYSS</span>
               <span className="text-[8px] text-indigo-400 font-mono block tracking-widest mt-[-2px]">FORENSICS</span>
             </div>
           </div>

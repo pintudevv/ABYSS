@@ -1,5 +1,5 @@
 """
-StealthOS — Sandbox Runner (Step 3)
+ABYSS — Sandbox Runner (Step 3)
 ====================================
 Skills applied:
   - weaponized-autism : handle ALL edge cases — Cuckoo offline, timeout, malformed JSON
@@ -47,10 +47,10 @@ from dotenv import load_dotenv
 load_dotenv(Path(__file__).parent / ".env")
 
 VBOX_MANAGE = r"C:\Program Files\Oracle\VirtualBox\VBoxManage.exe"
-VM_NAME = "StealthOS-Sandbox"
+VM_NAME = "ABYSS-Sandbox"
 SNAPSHOT_NAME = "clean-baseline"
-GUEST_USER = os.getenv("STEALTHOS_VM_USER", "piyuzz")
-GUEST_PASS = os.getenv("STEALTHOS_VM_PASS", "")
+GUEST_USER = os.getenv("ABYSS_VM_USER", "piyuzz")
+GUEST_PASS = os.getenv("ABYSS_VM_PASS", "")
 GUEST_PYTHON = r"C:\Users\piyuzz\AppData\Local\Programs\Python\Python313\python.exe"
 
 import subprocess
@@ -433,7 +433,7 @@ def run_sandbox(file_path: Path, output_dir: Path) -> dict:
 
 
 def main():
-    parser = argparse.ArgumentParser(description="StealthOS Sandbox Runner — Step 3")
+    parser = argparse.ArgumentParser(description="ABYSS Sandbox Runner — Step 3")
     parser.add_argument("file", nargs="?", help="File to analyze")
     parser.add_argument("--output", "-o", default=str(RESULTS_DIR))
     args = parser.parse_args()

@@ -1,5 +1,5 @@
 """
-StealthOS -- Deception + Neutralization Layer (Step 5)
+ABYSS -- Deception + Neutralization Layer (Step 5)
 ======================================================
 Intercepts, deceives, and neutralizes malicious API calls, network
 connections, and file accesses using a three-pronged approach:
@@ -31,7 +31,7 @@ Frida JS design (meth-lab):
   - One send() per intercept, structured JSON payload.
   - Fast path first: sensitive check then action, then log.
 
-Author : StealthOS Core
+Author : ABYSS Core
 Version: 1.0.0
 """
 
@@ -1055,7 +1055,7 @@ class FridaHookEngine:
 
 class DeceptionLayer:
     """
-    Top-level orchestrator for StealthOS Step 5.
+    Top-level orchestrator for ABYSS Step 5.
 
     Typical usage::
 
@@ -1269,7 +1269,7 @@ class DeceptionLayer:
 def _build_parser():
     import argparse
     p = argparse.ArgumentParser(
-        description="StealthOS -- Deception + Neutralization Layer (Step 5)",
+        description="ABYSS -- Deception + Neutralization Layer (Step 5)",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
@@ -1343,7 +1343,7 @@ def main() -> None:
         result = layer.stop()
         divider = "=" * 60
         print(f"\n{divider}")
-        print("  STEALTHOS -- DECEPTION LAYER COMPLETE")
+        print("  ABYSS -- DECEPTION LAYER COMPLETE")
         print(divider)
         print(f"  API hooks fired  : {len(result.get('api_hooks_fired', []))}")
         print(f"  Network blocked  : {len(result.get('network_blocked', []))}")

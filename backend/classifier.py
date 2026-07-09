@@ -1,5 +1,5 @@
 """
-StealthOS — ML & Heuristic Classifier (Step 4)
+ABYSS — ML & Heuristic Classifier (Step 4)
 ==============================================
 Loads static features (results/features.json) and sandbox behavior (results/behavior.json).
 Classifies threat using XGBoost/Random Forest/Autoencoder, falling back to heuristic evaluation.
@@ -522,7 +522,7 @@ def main():
     import hashlib
     from datetime import datetime as _dt
 
-    parser = argparse.ArgumentParser(description="StealthOS Classifier — Step 4")
+    parser = argparse.ArgumentParser(description="ABYSS Classifier — Step 4")
     parser.add_argument("file", nargs="?", default=None,
                         help="File to analyse (optional — used to run static analysis if features.json missing)")
     parser.add_argument("--features", default=str(RESULTS_DIR / "features.json"))
@@ -633,7 +633,7 @@ def main():
     fv = final_verdict
     mv = ml_verdict
     print("\n" + "=" * 60)
-    print("  STEALTHOS — UNIFIED CLASSIFICATION RESULT")
+    print("  ABYSS — UNIFIED CLASSIFICATION RESULT")
     print("=" * 60)
     print(f"  File          : {file_name}")
     if file_hash:

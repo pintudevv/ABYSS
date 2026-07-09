@@ -1,5 +1,5 @@
 """
-StealthOS — Static Feature Extractor (Step 1)
+ABYSS — Static Feature Extractor (Step 1)
 ==============================================
 Extracts static features from EXE or ZIP files using:
   - pefile  : PE header, imports, sections, entropy
@@ -760,7 +760,7 @@ def analyze_file(file_path_str: str, output_dir: Path = RESULTS_DIR) -> dict:
 
 def main():
     parser = argparse.ArgumentParser(
-        description="StealthOS Static Feature Extractor — Step 1",
+        description="ABYSS Static Feature Extractor — Step 1",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:

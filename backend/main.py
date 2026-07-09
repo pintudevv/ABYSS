@@ -1,5 +1,5 @@
 """
-StealthOS — FastAPI Backend (Step 7)
+ABYSS — FastAPI Backend (Step 7)
 =====================================
 Applied skills:
   - fastapi-pro    : async-first, Pydantic V2, lifespan, health checks, structured errors
@@ -58,7 +58,7 @@ logging.basicConfig(
     format="%(asctime)s [%(levelname)s] %(name)s — %(message)s",
     datefmt="%H:%M:%S",
 )
-log = logging.getLogger("stealthos.api")
+log = logging.getLogger("abyss.api")
 
 
 # ---------------------------------------------------------------------------
@@ -303,11 +303,11 @@ async def lifespan(app: FastAPI):
     if sys.platform == "win32":
         asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
     _load_cache()
-    log.info("StealthOS API started — hash cache loaded")
+    log.info("ABYSS API started — hash cache loaded")
     yield
     # Shutdown
     _save_cache()
-    log.info("StealthOS API shutdown — cache saved")
+    log.info("ABYSS API shutdown — cache saved")
 
 
 # ---------------------------------------------------------------------------
@@ -315,7 +315,7 @@ async def lifespan(app: FastAPI):
 # ---------------------------------------------------------------------------
 
 app = FastAPI(
-    title="StealthOS API",
+    title="ABYSS API",
     description="Hybrid ML Malware Detection, Deception & Forensic Capture System",
     version="1.0.0",
     docs_url="/docs",
@@ -546,7 +546,7 @@ async def download_forensic_report(task_id: str):
         raise HTTPException(status_code=404, detail="Forensic summary report not found")
     return FileResponse(
         path=summary_file,
-        filename=f"stealthos_forensics_{task_id}.txt",
+        filename=f"abyss_forensics_{task_id}.txt",
         media_type="text/plain"
     )
 

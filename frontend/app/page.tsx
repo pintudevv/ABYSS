@@ -86,7 +86,7 @@ export default function UploadPage() {
             </svg>
           </div>
           <div>
-            <span className="font-bold text-lg tracking-wider bg-clip-text text-transparent bg-gradient-to-r from-white via-gray-200 to-gray-400">STEALTHOS</span>
+            <span className="font-bold text-lg tracking-wider bg-clip-text text-transparent bg-gradient-to-r from-white via-gray-200 to-gray-400">ABYSS</span>
             <span className="text-[10px] text-indigo-400 font-mono block tracking-widest mt-[-2px]">SECURE_LAB</span>
           </div>
         </div>
@@ -106,7 +106,7 @@ export default function UploadPage() {
               Deceive &amp; Capture
             </h1>
             <p className="text-sm text-gray-400 leading-relaxed">
-              Upload executable targets or archives into StealthOS. Run threat analysis models and observe full logs inside a weightless instrumented sandbox.
+              Upload executable targets or archives into ABYSS. Run threat analysis models and observe full logs inside a weightless instrumented sandbox.
             </p>
           </div>
         )}
@@ -171,7 +171,7 @@ export default function UploadPage() {
       {/* Footer */}
       <footer className="w-full text-center z-10 py-4">
         <p className="text-[10px] text-gray-500 font-mono tracking-widest">
-          STEALTHOS VERSION 1.0.0 — SEMESTER PROJECT
+          ABYSS VERSION 1.0.0 — SEMESTER PROJECT
         </p>
       </footer>
     </div>

@@ -1,5 +1,5 @@
 /**
- * StealthOS API Client
+ * ABYSS API Client
  * Connects to backend at http://localhost:8000
  */
 
@@ -153,7 +153,7 @@ async function apiFetch<T>(
     });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Network error';
-    throw new ApiError(0, `Failed to reach StealthOS backend: ${message}`);
+    throw new ApiError(0, `Failed to reach ABYSS backend: ${message}`);
   }
 
   if (!response.ok) {

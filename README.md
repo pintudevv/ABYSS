@@ -1,7 +1,7 @@
-# StealthOS
+# ABYSS
 ### Hybrid ML Malware Detection, Deception & Forensic Capture System
 
-StealthOS is a next-generation malware analysis platform that combines static machine learning classifiers, dynamic sandbox profiling (via VirtualBox and Frida), active deception/neutralization layers, and detailed forensic reporting into a unified premium dashboard.
+ABYSS is a next-generation malware analysis platform that combines static machine learning classifiers, dynamic sandbox profiling (via VirtualBox and Frida), active deception/neutralization layers, and detailed forensic reporting into a unified premium dashboard.
 
 ---
 
@@ -57,7 +57,7 @@ StealthOS is a next-generation malware analysis platform that combines static ma
 ## 📁 Repository Structure
 
 ```
-stealthos/
+abyss/
 ├── backend/
 │   ├── main.py              # FastAPI server (lifespan, CORS, status pollers)
 │   ├── static_analysis.py   # Stage 1: PE feature and string extractor (LIEF/pefile)
@@ -88,8 +88,8 @@ stealthos/
 ### 1. Environment Configuration
 Create a `.env` file in the `backend/` directory based on `backend/.env.example`:
 ```env
-STEALTHOS_VM_USER=piyuzz
-STEALTHOS_VM_PASS=your_guest_vm_password_here
+ABYSS_VM_USER=piyuzz
+ABYSS_VM_PASS=your_guest_vm_password_here
 ```
 
 ### 2. Backend Setup (Python 3.10+)
@@ -120,10 +120,10 @@ The UI dashboard will be accessible at `http://localhost:3000`.
 ---
 
 ## 🧪 VM Sandbox Configuration
-For dynamic analysis, ensure a VirtualBox VM named `StealthOS-Sandbox` is set up with:
+For dynamic analysis, ensure a VirtualBox VM named `ABYSS-Sandbox` is set up with:
 1. **AutoLogon Enabled**: Windows automatically logs in to the desktop on boot.
 2. **Frida Server running**: Frida Server (v17.15.3 recommended) running as a system service.
-3. **Headless Default**: Run `VBoxManage modifyvm "StealthOS-Sandbox" --defaultfrontend headless` so snapshots resume headlessly.
+3. **Headless Default**: Run `VBoxManage modifyvm "ABYSS-Sandbox" --defaultfrontend headless` so snapshots resume headlessly.
 4. **Baseline Snapshot**: Take a powered-off snapshot named `clean-baseline`.
 
 ---
