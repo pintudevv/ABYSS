@@ -1,4 +1,4 @@
-# 🌌 ABYSS
+# ABYSS
 ### **Multi-Dimensional Hybrid ML Malware Detection & Active Deception Sandbox**
 
 ```
@@ -9,10 +9,18 @@
  /  _____  \  |  |_)  |     |  | .----)   | .----)   |   
 /__/     \__\ |______/      |__| |_______/  |_______/    
 ```
+<p align="left">
+  <img src="https://img.shields.io/badge/Python-3.10+-3776AB?style=flat-square&logo=python&logoColor=white" />
+  <img src="https://img.shields.io/badge/FastAPI-009688?style=flat-square&logo=fastapi&logoColor=white" />
+  <img src="https://img.shields.io/badge/Next.js-14-000000?style=flat-square&logo=nextdotjs&logoColor=white" />
+  <img src="https://img.shields.io/badge/TypeScript-5.0-3178C6?style=flat-square&logo=typescript&logoColor=white" />
+  <img src="https://img.shields.io/badge/VirtualBox-Sandbox-183A61?style=flat-square&logo=virtualbox&logoColor=white" />
+  <img src="https://img.shields.io/badge/Frida-Hooking-E34F26?style=flat-square&logo=frida&logoColor=white" />
+</p>
 
 ---
 
-## 🗺️ Multi-Dimensional Pipeline Architecture
+## Pipeline Architecture
 
 The ABYSS engine processes untrusted files through a **5-Layer Security Stack**. Each layer acts as a separate dimension of analysis and mitigation:
 
@@ -26,26 +34,26 @@ flowchart TD
     classDef forensics fill:#06b6d4,stroke:#67e8f9,stroke-width:2px,color:#fff,rx:8px,ry:8px;
     classDef file fill:#1e293b,stroke:#475569,stroke-width:2px,color:#fff;
 
-    File["📁 Uploaded File (EXE / DLL / ZIP)"] :::file
+    File["Uploaded File (EXE / DLL / ZIP)"] :::file
     
-    subgraph L1 ["🛡️ Dimension 1: Static Extractor"]
-        Static["🔍 LIEF & pefile parsing\n- Packing Detection\n- Entropy Calculations\n- Import Analysis"] :::detection
+    subgraph L1 ["Dimension 1: Static Extractor"]
+        Static["LIEF & pefile parsing\n- Packing Detection\n- Entropy Calculations\n- Import Analysis"] :::detection
     end
     
-    subgraph L2 ["🎛️ Dimension 2: Isolation Sandbox"]
-        Sandbox["🖥️ VirtualBox Guest VM\n- AutoLogon Boot\n- Frida Hook Injection\n- Real-time Trace Log"] :::sandbox
+    subgraph L2 ["Dimension 2: Isolation Sandbox"]
+        Sandbox["VirtualBox Guest VM\n- AutoLogon Boot\n- Frida Hook Injection\n- Real-time Trace Log"] :::sandbox
     end
     
-    subgraph L3 ["🧠 Dimension 3: Hybrid ML Classifier"]
-        ML["🤖 XGBoost & Random Forest\n- PyTorch Autoencoder\n- SHAP Explanations"] :::ml
+    subgraph L3 ["Dimension 3: Hybrid ML Classifier"]
+        ML["XGBoost & Random Forest\n- PyTorch Autoencoder\n- SHAP Explanations"] :::ml
     end
     
-    subgraph L4 ["🎭 Dimension 4: Active Deception"]
-        Deception["🤫 Neutralization Hooks\n- Fake Registry Keys\n- Decoy Credentials\n- Network Sinkhole"] :::deception
+    subgraph L4 ["Dimension 4: Active Deception"]
+        Deception["Neutralization Hooks\n- Fake Registry Keys\n- Decoy Credentials\n- Network Sinkhole"] :::deception
     end
     
-    subgraph L5 ["📄 Dimension 5: Forensic Logger"]
-        Forensics["📊 Timeline Merger\n- unified_report.json\n- txt Summary"] :::forensics
+    subgraph L5 ["Dimension 5: Forensic Logger"]
+        Forensics["Timeline Merger\n- unified_report.json\n- txt Summary"] :::forensics
     end
 
     File --> L1
@@ -54,10 +62,18 @@ flowchart TD
     L3 --> L4
     L4 --> L5
 ```
+<p align="left">
+  <img src="https://img.shields.io/badge/Python-3.10+-3776AB?style=flat-square&logo=python&logoColor=white" />
+  <img src="https://img.shields.io/badge/FastAPI-009688?style=flat-square&logo=fastapi&logoColor=white" />
+  <img src="https://img.shields.io/badge/Next.js-14-000000?style=flat-square&logo=nextdotjs&logoColor=white" />
+  <img src="https://img.shields.io/badge/TypeScript-5.0-3178C6?style=flat-square&logo=typescript&logoColor=white" />
+  <img src="https://img.shields.io/badge/VirtualBox-Sandbox-183A61?style=flat-square&logo=virtualbox&logoColor=white" />
+  <img src="https://img.shields.io/badge/Frida-Hooking-E34F26?style=flat-square&logo=frida&logoColor=white" />
+</p>
 
 ---
 
-## 🧬 Anatomy of the 5-Layer Stack
+## 5-Layer Stack Anatomy
 
 | Dimension | Engine Component | Target Indicators | Active Mitigation / Neutralization |
 | :--- | :--- | :--- | :--- |
@@ -69,7 +85,7 @@ flowchart TD
 
 ---
 
-## 📂 Repository Layout
+## Repository Structure
 
 ```
 abyss/
@@ -95,10 +111,18 @@ abyss/
     ├── test_real_behavior.c # Safe custom binary showcasing hooked API actions
     └── test_suspicious.c    # Safe custom binary showcasing dynamic API resolution
 ```
+<p align="left">
+  <img src="https://img.shields.io/badge/Python-3.10+-3776AB?style=flat-square&logo=python&logoColor=white" />
+  <img src="https://img.shields.io/badge/FastAPI-009688?style=flat-square&logo=fastapi&logoColor=white" />
+  <img src="https://img.shields.io/badge/Next.js-14-000000?style=flat-square&logo=nextdotjs&logoColor=white" />
+  <img src="https://img.shields.io/badge/TypeScript-5.0-3178C6?style=flat-square&logo=typescript&logoColor=white" />
+  <img src="https://img.shields.io/badge/VirtualBox-Sandbox-183A61?style=flat-square&logo=virtualbox&logoColor=white" />
+  <img src="https://img.shields.io/badge/Frida-Hooking-E34F26?style=flat-square&logo=frida&logoColor=white" />
+</p>
 
 ---
 
-## ⚙️ Setup & Execution
+## Setup & Execution
 
 ### 1. Configure Host Environment
 Create a `.env` file inside the `backend/` directory:
@@ -127,7 +151,7 @@ npm run start
 
 ---
 
-## 🛠️ Sandbox VM Specification
+## Sandbox VM Specification
 For dynamic profiling to succeed, configure a VirtualBox VM named `StealthOS-Sandbox`:
 1. **AutoLogon**: Enabled so Windows directly enters desktop on VM startup.
 2. **Frida Server**: Install `frida-server-17.15.3-windows-x86` inside the guest as a system auto-starting service.
