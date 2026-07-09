@@ -32,28 +32,28 @@ flowchart TD
     classDef ml fill:#ffaa00,stroke:#ffe082,stroke-width:2px,color:#fff,rx:8px,ry:8px;
     classDef deception fill:#00ff88,stroke:#a7f3d0,stroke-width:2px,color:#111,rx:8px,ry:8px;
     classDef forensics fill:#06b6d4,stroke:#67e8f9,stroke-width:2px,color:#fff,rx:8px,ry:8px;
-    classDef file fill:#1e293b,stroke:#475569,stroke-width:2px,color:#fff;
+    classDef fileNode fill:#1e293b,stroke:#475569,stroke-width:2px,color:#fff;
 
-    File["Uploaded File (EXE / DLL / ZIP)"] :::file
+    File["Uploaded File (EXE / DLL / ZIP)"]
     
     subgraph L1 ["Dimension 1: Static Extractor"]
-        Static["LIEF & pefile parsing\n- Packing Detection\n- Entropy Calculations\n- Import Analysis"] :::detection
+        Static["LIEF & pefile parsing\n- Packing Detection\n- Entropy Calculations\n- Import Analysis"]
     end
     
     subgraph L2 ["Dimension 2: Isolation Sandbox"]
-        Sandbox["VirtualBox Guest VM\n- AutoLogon Boot\n- Frida Hook Injection\n- Real-time Trace Log"] :::sandbox
+        Sandbox["VirtualBox Guest VM\n- AutoLogon Boot\n- Frida Hook Injection\n- Real-time Trace Log"]
     end
     
     subgraph L3 ["Dimension 3: Hybrid ML Classifier"]
-        ML["XGBoost & Random Forest\n- PyTorch Autoencoder\n- SHAP Explanations"] :::ml
+        ML["XGBoost & Random Forest\n- PyTorch Autoencoder\n- SHAP Explanations"]
     end
     
     subgraph L4 ["Dimension 4: Active Deception"]
-        Deception["Neutralization Hooks\n- Fake Registry Keys\n- Decoy Credentials\n- Network Sinkhole"] :::deception
+        Deception["Neutralization Hooks\n- Fake Registry Keys\n- Decoy Credentials\n- Network Sinkhole"]
     end
     
     subgraph L5 ["Dimension 5: Forensic Logger"]
-        Forensics["Timeline Merger\n- unified_report.json\n- txt Summary"] :::forensics
+        Forensics["Timeline Merger\n- unified_report.json\n- txt Summary"]
     end
 
     File --> L1
@@ -61,6 +61,13 @@ flowchart TD
     L2 --> L3
     L3 --> L4
     L4 --> L5
+
+    class File fileNode;
+    class Static detection;
+    class Sandbox sandbox;
+    class ML ml;
+    class Deception deception;
+    class Forensics forensics;
 ```
 <p align="left">
   <img src="https://img.shields.io/badge/Python-3.10+-3776AB?style=flat-square&logo=python&logoColor=white" />
