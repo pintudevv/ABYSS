@@ -42,13 +42,15 @@ TIMEOUT = 120        # seconds
 
 # ---------------------------------------------------------------------------
 # VirtualBox sandbox orchestration
-# ---------------------------------------------------------------------------
+# Load environment variables
+from dotenv import load_dotenv
+load_dotenv(Path(__file__).parent / ".env")
 
 VBOX_MANAGE = r"C:\Program Files\Oracle\VirtualBox\VBoxManage.exe"
 VM_NAME = "StealthOS-Sandbox"
 SNAPSHOT_NAME = "clean-baseline"
-GUEST_USER = "piyuzz"
-GUEST_PASS = "REDACTED"
+GUEST_USER = os.getenv("STEALTHOS_VM_USER", "piyuzz")
+GUEST_PASS = os.getenv("STEALTHOS_VM_PASS", "")
 GUEST_PYTHON = r"C:\Users\piyuzz\AppData\Local\Programs\Python\Python313\python.exe"
 
 import subprocess

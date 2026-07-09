@@ -6,6 +6,15 @@ __pycache__/
 .ipynb_checkpoints
 .pytest_cache/
 
+# Environment & secrets
+.env
+*.env
+
+# Compiled binaries
+*.exe
+training/*.exe
+training/frida-server*
+
 # Large datasets and virtual environments
 training/ember2018/
 training/*.tar.bz2
@@ -22,11 +31,10 @@ frontend/node_modules/
 frontend/.next/
 frontend/tsconfig.tsbuildinfo
 
-# Application results
-backend/results/*.json
-backend/results/*.txt
+# Application results and uploads
+backend/results/
 !backend/results/.gitkeep
-backend/uploads/*
+backend/uploads/
 !backend/uploads/.gitkeep
 
 # IDEs and OS
