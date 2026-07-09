@@ -1,60 +1,75 @@
-# ABYSS
-### Hybrid ML Malware Detection, Deception & Forensic Capture System
-
-ABYSS is a next-generation malware analysis platform that combines static machine learning classifiers, dynamic sandbox profiling (via VirtualBox and Frida), active deception/neutralization layers, and detailed forensic reporting into a unified premium dashboard.
-
----
-
-## 🚀 Pipeline Architecture
+# 🌌 ABYSS
+### **Multi-Dimensional Hybrid ML Malware Detection & Active Deception Sandbox**
 
 ```
-                       Upload File (EXE / DLL / ZIP)
-                                     │
-                                     ▼
-                      ┌──────────────────────────────┐
-                      │    1. Static Feature Extraction │
-                      │  - PE Header & String Analysis│
-                      │  - Pack & Entropy Checking   │
-                      └──────────────┬───────────────┘
-                                     │
-                                     ▼
-                      ┌──────────────────────────────┐
-                      │     2. Dynamic Profiling     │
-                      │  - Reverts VM to clean state │
-                      │  - AutoLogon Headless Boot   │
-                      │  - Inject Frida Hook Engine  │
-                      └──────────────┬───────────────┘
-                                     │
-                                     ▼
-                      ┌──────────────────────────────┐
-                      │    3. Hybrid Classifier      │
-                      │  - XGBoost & Random Forest   │
-                      │  - PyTorch Autoencoder (ZD)  │
-                      │  - SHAP Feature Explanations │
-                      └──────────────┬───────────────┘
-                                     │
-                                     ▼
-                      ┌──────────────────────────────┐
-                      │ 4. Deception & Neutralization│
-                      │  - Return Fake Success/NULLs │
-                      │  - Sinkhole Malicious IPs    │
-                      │  - Watchdog Honeypots        │
-                      └──────────────┬───────────────┘
-                                     │
-                                     ▼
-                      ┌──────────────────────────────┐
-                      │      5. Forensic Engine      │
-                      │  - Timeline Reconstruction   │
-                      │  - Unified Forensic Report   │
-                      └──────────────┬───────────────┘
-                                     │
-                                     ▼
-                         Premium Next.js Dashboard
+     ___       ______   ____    ____  _______.   _______.
+    /   \     |   _  \  \   \  /   / /       |  /       |
+   /  ^  \    |  |_)  |  \   \/   / |   (----` |   (----`
+  /  /_\  \   |   _  <    \_    _/   \   \      \   \    
+ /  _____  \  |  |_)  |     |  | .----)   | .----)   |   
+/__/     \__\ |______/      |__| |_______/  |_______/    
 ```
 
 ---
 
-## 📁 Repository Structure
+## 🗺️ Multi-Dimensional Pipeline Architecture
+
+The ABYSS engine processes untrusted files through a **5-Layer Security Stack**. Each layer acts as a separate dimension of analysis and mitigation:
+
+```mermaid
+flowchart TD
+    %% Styling configurations
+    classDef detection fill:#ff3366,stroke:#ff88aa,stroke-width:2px,color:#fff,rx:8px,ry:8px;
+    classDef sandbox fill:#6366f1,stroke:#a5b4fc,stroke-width:2px,color:#fff,rx:8px,ry:8px;
+    classDef ml fill:#ffaa00,stroke:#ffe082,stroke-width:2px,color:#fff,rx:8px,ry:8px;
+    classDef deception fill:#00ff88,stroke:#a7f3d0,stroke-width:2px,color:#111,rx:8px,ry:8px;
+    classDef forensics fill:#06b6d4,stroke:#67e8f9,stroke-width:2px,color:#fff,rx:8px,ry:8px;
+    classDef file fill:#1e293b,stroke:#475569,stroke-width:2px,color:#fff;
+
+    File["📁 Uploaded File (EXE / DLL / ZIP)"] :::file
+    
+    subgraph L1 ["🛡️ Dimension 1: Static Extractor"]
+        Static["🔍 LIEF & pefile parsing\n- Packing Detection\n- Entropy Calculations\n- Import Analysis"] :::detection
+    end
+    
+    subgraph L2 ["🎛️ Dimension 2: Isolation Sandbox"]
+        Sandbox["🖥️ VirtualBox Guest VM\n- AutoLogon Boot\n- Frida Hook Injection\n- Real-time Trace Log"] :::sandbox
+    end
+    
+    subgraph L3 ["🧠 Dimension 3: Hybrid ML Classifier"]
+        ML["🤖 XGBoost & Random Forest\n- PyTorch Autoencoder\n- SHAP Explanations"] :::ml
+    end
+    
+    subgraph L4 ["🎭 Dimension 4: Active Deception"]
+        Deception["🤫 Neutralization Hooks\n- Fake Registry Keys\n- Decoy Credentials\n- Network Sinkhole"] :::deception
+    end
+    
+    subgraph L5 ["📄 Dimension 5: Forensic Logger"]
+        Forensics["📊 Timeline Merger\n- unified_report.json\n- txt Summary"] :::forensics
+    end
+
+    File --> L1
+    L1 --> L2
+    L2 --> L3
+    L3 --> L4
+    L4 --> L5
+```
+
+---
+
+## 🧬 Anatomy of the 5-Layer Stack
+
+| Dimension | Engine Component | Target Indicators | Active Mitigation / Neutralization |
+| :--- | :--- | :--- | :--- |
+| **1. Static Analysis** | `static_analysis.py` | UPX/Packed headers, high entropy sections, suspicious strings. | Early threat grading (Risk Score 0-100). If score $\ge 95$, skips sandbox stage to protect VM resources. |
+| **2. Dynamic Profiling** | `sandbox_runner.py` | Runtime APIs (`VirtualAllocEx`, `WriteProcessMemory`, registry keys). | Automated headless rollback to `clean-baseline` snapshot, executing sample under Frida hooks. |
+| **3. Machine Learning** | `classifier.py` | 2,381-feature EMBER static array, reconstruction loss anomalies. | Dual XGBoost/RF threat classification. Autoencoder captures zero-day variance. SHAP renders impact chart. |
+| **4. Active Deception** | `deception_layer.py` | Credential stealing, clipboard sniffers, C2 connection relays. | Frida hooks return `FAKE_SUCCESS`, intercepting `CreateFile` / `GetClipboardData`. Sockets are exfil-sinkholed. |
+| **5. Forensics** | `forensic_logger.py` | Scattered system logs, API traces, honeypot access logs. | Reconstructs a chronological attack timeline with graded severity tags (Critical, High, Medium, Low). |
+
+---
+
+## 📂 Repository Layout
 
 ```
 abyss/
@@ -83,66 +98,44 @@ abyss/
 
 ---
 
-## 🛠️ Installation & Setup
+## ⚙️ Setup & Execution
 
-### 1. Environment Configuration
-Create a `.env` file in the `backend/` directory based on `backend/.env.example`:
+### 1. Configure Host Environment
+Create a `.env` file inside the `backend/` directory:
 ```env
 ABYSS_VM_USER=piyuzz
 ABYSS_VM_PASS=your_guest_vm_password_here
 ```
 
-### 2. Backend Setup (Python 3.10+)
-Install Python dependencies:
+### 2. Launch FastAPI Server
 ```bash
 cd backend
 pip install -r requirements.txt
-```
-To run the FastAPI server:
-```bash
 python main.py
 ```
-The server will start on `http://localhost:8000`. You can view the interactive documentation at `http://localhost:8000/docs`.
+*   Server API docs: `http://localhost:8000/docs`
+*   Server endpoints: `http://localhost:8000/health`
 
-### 3. Frontend Setup (Next.js 14+)
-Install node modules:
+### 3. Deploy Dashboard (Next.js)
 ```bash
 cd frontend
 npm install
-```
-Build and run the production server:
-```bash
 npm run build
 npm run start
 ```
-The UI dashboard will be accessible at `http://localhost:3000`.
+*   Web app UI: `http://localhost:3000`
 
 ---
 
-## 🧪 VM Sandbox Configuration
-For dynamic analysis, ensure a VirtualBox VM named `ABYSS-Sandbox` is set up with:
-1. **AutoLogon Enabled**: Windows automatically logs in to the desktop on boot.
-2. **Frida Server running**: Frida Server (v17.15.3 recommended) running as a system service.
-3. **Headless Default**: Run `VBoxManage modifyvm "ABYSS-Sandbox" --defaultfrontend headless` so snapshots resume headlessly.
+## 🛠️ Sandbox VM Specification
+For dynamic profiling to succeed, configure a VirtualBox VM named `StealthOS-Sandbox`:
+1. **AutoLogon**: Enabled so Windows directly enters desktop on VM startup.
+2. **Frida Server**: Install `frida-server-17.15.3-windows-x86` inside the guest as a system auto-starting service.
+3. **Headless Execution**: Set VM frontend type default to `headless`.
 4. **Baseline Snapshot**: Take a powered-off snapshot named `clean-baseline`.
 
 ---
 
-## 📊 Heuristics and ML Classifiers
-* **XGBoost & Random Forest**: Evaluates files based on 2,381 static EMBER features.
-* **Autoencoder Anomaly Detection**: Highlights potential Zero-Day threats if the reconstruction loss exceeds the threshold derived during training.
-* **SHAP (SHapley Additive exPlanations)**: Calculates the exact impact of top features contributing to the final classification verdict.
-
----
-
-## 🛡️ Deception Mechanisms
-* **Win32 API Hooking**: Frida hooks credential files (`CreateFile`), registry keys (`RegOpenKeyEx`), clipboard data (`GetClipboardData`), and sockets (`connect`). Accesses are faked (`FAKE_SUCCESS`, `INVALID_HANDLE_VALUE`, or `NULL`) to neutralize threat progression.
-* **IP Sinkholing**: Blocks exfiltration to C2 servers using blocklists, logging all deflected data.
-* **Watcher honeypots**: Watchdog monitors reads of decoy files under `mock_data/` and logs when a process tries to steal honey tokens.
-
----
-
-## 📜 API Endpoints
 
 | Method | Endpoint | Description |
 |---|---|---|
