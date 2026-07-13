@@ -788,6 +788,32 @@ Examples:
     output_dir = Path(args.output)
     output_dir.mkdir(parents=True, exist_ok=True)
 
+    file_path = Path(args.file)
+    ext = file_path.suffix.lower()
+
+    # Route non-PE files to dedicated analyzers
+    if ext == ".pdf":
+        log.info("Routing to PDF analyzer")
+        from pdf_analyzer import analyze_pdf
+        features = analyze_pdf(file_path, output_dir)
+        risk = features["heuristic_risk"]
+        print(f"\n  PDF Analysis: {file_path.name}")
+        print(f"  Score: {risk['score']}/100 [{risk['risk_level']}]")
+        for r in risk["reasons"]:
+            print(f"    • {r}")
+        return 0
+
+    if ext in {".zip", ".docx", ".xlsx", ".pptx", ".docm", ".xlsm", ".pptm", ".jar", ".apk"}:
+        log.info("Routing to ZIP analyzer")
+        from zip_analyzer import analyze_zip
+        features = analyze_zip(file_path, output_dir)
+        risk = features["heuristic_risk"]
+        print(f"\n  ZIP Analysis: {file_path.name}")
+        print(f"  Score: {risk['score']}/100 [{risk['risk_level']}]")
+        for r in risk["reasons"]:
+            print(f"    • {r}")
+        return 0
+
     try:
         features = analyze_file(args.file, output_dir)
 

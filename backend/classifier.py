@@ -571,6 +571,69 @@ def main():
         log.error(f"Cannot read features.json: {e}")
         sys.exit(1)
 
+    # ---- Non-PE files: use heuristic results directly, skip ML models ----
+    file_type_info = static_data.get("file_type", {})
+    is_pe = file_type_info.get("is_pe", True)  # default True for backwards compat
+    is_pdf = file_type_info.get("is_pdf", False)
+    is_zip = file_type_info.get("is_zip", False)
+
+    if is_pdf or is_zip or not is_pe:
+        fi   = static_data.get("file_info", {})
+        risk = static_data.get("heuristic_risk", {})
+        score     = risk.get("score", 0)
+        risk_lvl  = risk.get("risk_level", "CLEAN")
+        file_kind = "PDF" if is_pdf else "ZIP" if is_zip else "Unknown"
+
+        # Map heuristic score to threat type
+        if score >= 60:
+            threat_type = f"Malicious {file_kind}"
+        elif score >= 30:
+            threat_type = f"Suspicious {file_kind}"
+        else:
+            threat_type = "Clean"
+
+        label = "malicious" if score >= 40 else "clean"
+
+        unified = {
+            "file":               fi.get("filename", "unknown"),
+            "sha256":             fi.get("sha256", ""),
+            "analysis_timestamp": fi.get("analysis_timestamp", _dt.utcnow().isoformat() + "Z"),
+            "ml_verdict": {
+                "threat_type":     threat_type,
+                "confidence":      score,
+                "is_zero_day":     False,
+                "risk_level":      risk_lvl,
+                "shap_explanation": [],
+                "classifier_used": "heuristic",
+                "decision_path":   risk.get("reasons", []),
+            },
+            "dynamic_verdict": {
+                "dynamic_skipped": True,
+                "skip_reason":     f"Non-PE file ({file_kind}) — sandbox not applicable",
+                "mock_mode":       False,
+                "api_calls":       [],
+                "file_operations": [],
+                "processes":       [],
+                "network_connections": [],
+                "registry_operations": [],
+                "score": 0,
+                "behavioral_indicators": {},
+            },
+            "final_verdict": {
+                "label":       label,
+                "confidence":  score,
+                "threat_type": threat_type,
+                "risk_level":  risk_lvl,
+                "is_zero_day": False,
+                "reasoning":   f"Heuristic {file_kind} analysis: {score}/100 score. " + "; ".join(risk.get("reasons", [])),
+            },
+        }
+        out_path = output_dir / "classification_result.json"
+        out_path.write_text(json.dumps(unified, indent=2), encoding="utf-8")
+        log.info(f"Non-PE classification complete: {threat_type} ({score}%) → {out_path}")
+        print(f"\n  {file_kind} verdict: {threat_type} | Score: {score}/100 [{risk_lvl}]")
+        sys.exit(0)
+
     # ---- Load behavior.json — reject mock data, skip cleanly if absent ----
     dynamic_skipped   = False
     dynamic_skip_reason: str | None = None
