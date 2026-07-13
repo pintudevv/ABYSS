@@ -42,16 +42,9 @@ SUSPICIOUS_PDF_KEYS = [
     "/RichMedia",                  # Flash/multimedia embedding
     "/XFA",                        # XML Forms Architecture (exploitable)
     "/ObjStm",                     # Object streams (obfuscation)
-    "/XObject",                    # Embedded objects
     "/EmbeddedFile",               # File attachments
     "/Encrypt",                    # Encrypted content
-    "/AcroForm",                   # Interactive forms
     "/JBIG2Decode",                # JBIG2 exploit vector
-    "/FlateDecode",                # Compressed streams
-    "/ASCIIHexDecode",             # Hex-encoded content
-    "/ASCII85Decode",              # Base85 encoding
-    "/RunLengthDecode",            # Run-length (rare, suspicious)
-    "/CCITTFaxDecode",             # Fax encoding (unusual)
 ]
 
 CRITICAL_PDF_KEYS = {
@@ -151,7 +144,9 @@ def analyze_pdf(file_path: Path, output_dir: Path) -> dict[str, Any]:
     urls_found = list(set(SUSPICIOUS_URL_PATTERN.findall(text)))[:20]
 
     # ---- Embedded file detection ----
-    has_embedded_exe = bool(re.search(r"MZ|PE\x00\x00", text[:65536]))
+    # Legitimate PDFs naturally contain strings like 'MZ' in metadata or binary data.
+    # To avoid false positives, we check for a real Windows executable header signature.
+    has_embedded_exe = bool(re.search(r"This program cannot be run in DOS mode|This program must be run under Win32", text))
     embedded_extensions = list(set(re.findall(r"\.(exe|dll|bat|vbs|ps1|js|py|sh|cmd)\b", text, re.IGNORECASE)))
 
     # ---- Encryption / obfuscation ----
@@ -165,7 +160,7 @@ def analyze_pdf(file_path: Path, output_dir: Path) -> dict[str, Any]:
         e = _entropy(block.encode("latin-1", errors="replace"))
         if e > max_stream_entropy:
             max_stream_entropy = e
-        if e > 7.0:
+        if e > 7.95:  # Pure randomness/encryption threshold
             high_entropy_streams += 1
 
     # ---- Heuristic scoring ----
@@ -181,8 +176,8 @@ def analyze_pdf(file_path: Path, output_dir: Path) -> dict[str, Any]:
         reasons.append(f"Suspicious JS patterns: {len(js_pattern_hits)} matches (+25)")
 
     if has_embedded_exe:
-        score += 30
-        reasons.append("Embedded executable (MZ/PE header) found (+30)")
+        score += 45
+        reasons.append("Embedded executable (DOS stub signature) found (+45)")
 
     if embedded_extensions:
         score += 20
@@ -196,15 +191,16 @@ def analyze_pdf(file_path: Path, output_dir: Path) -> dict[str, Any]:
         score += 10
         reasons.append("Obfuscated object streams (/ObjStm or ASCII hex) (+10)")
 
-    if high_entropy_streams > 0:
+    # Disable adding score for compressed streams since zlib compression inherently yields high entropy
+    if high_entropy_streams > 0 and (is_encrypted or js_pattern_hits):
         score += 15
-        reasons.append(f"{high_entropy_streams} high-entropy stream(s) — possible shellcode (+15)")
+        reasons.append(f"{high_entropy_streams} high-entropy stream(s) with JS/encryption (+15)")
 
     if urls_found:
         score += 5
         reasons.append(f"{len(urls_found)} URL(s) found in PDF (+5)")
 
-    if len(found_keys) > 5:
+    if len(found_keys) > 3:
         score += 5
         reasons.append(f"Abnormal number of suspicious PDF keys ({len(found_keys)}) (+5)")
 
