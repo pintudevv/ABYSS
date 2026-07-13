@@ -29,6 +29,11 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
+import sys
+if sys.platform == "win32":
+    asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
+
+
 
 
 # ---------------------------------------------------------------------------
@@ -107,13 +112,40 @@ class HealthResponse(BaseModel):
 # ---------------------------------------------------------------------------
 
 def _load_cache() -> None:
-    global _hash_cache
+    global _hash_cache, _tasks
     if CACHE_FILE.exists():
         try:
             _hash_cache = json.loads(CACHE_FILE.read_text())
             log.info(f"Loaded {len(_hash_cache)} cached file hashes")
         except Exception:
             _hash_cache = {}
+
+    try:
+        count = 0
+        for p in RESULTS_DIR.iterdir():
+            if p.is_dir() and (p / "classification_result.json").exists():
+                task_id = p.name
+                try:
+                    result = json.loads((p / "classification_result.json").read_text(encoding="utf-8"))
+                    filename = result.get("file", "unknown")
+                    sha256 = result.get("sha256", "")
+                    _tasks[task_id] = {
+                        "status": "done",
+                        "stage": "complete",
+                        "progress": 100,
+                        "message": "Analysis complete (restored from disk)",
+                        "filename": filename,
+                        "sha256": sha256,
+                        "started_at": result.get("analysis_timestamp", datetime.now().isoformat()),
+                        "updated_at": result.get("analysis_timestamp", datetime.now().isoformat()),
+                    }
+                    count += 1
+                except Exception:
+                    pass
+        if count > 0:
+            log.info(f"Restored {count} completed tasks from disk")
+    except Exception as e:
+        log.warning(f"Could not restore tasks from disk: {e}")
 
 
 def _save_cache() -> None:
@@ -208,35 +240,39 @@ async def _run_pipeline(task_id: str, file_path: Path, sha256: str) -> None:
         _update_task(task_id, "classifier", 55, "Running ML classification pipeline...")
         await _run_script_with_timeout(
             "classifier.py",
-            # Pass file_path so classifier.py populates file/sha256 in unified output.
-            # features.json already exists from Stage 1, so filepath-match check skips re-run.
             [str(file_path),
              "--features", str(task_dir / "features.json"),
              "--behavior", str(task_dir / "behavior.json"),
              "--output", str(task_dir)],
-            timeout=60
+            timeout=180  # ML model loading can be slow
         )
         classification = _load_json_safe(task_dir / "classification_result.json")
-        threat_type = classification.get("threat_type", "Unknown")
-        confidence = classification.get("confidence", 0)
+        # unified output nests result under final_verdict
+        final_v = classification.get("final_verdict", classification)
+        threat_type = final_v.get("threat_type", classification.get("threat_type", "Unknown"))
+        confidence = final_v.get("confidence", classification.get("confidence", 0))
         _update_task(task_id, "classifier", 68,
                      f"Classification: {threat_type} ({confidence}% confidence)")
 
         # ---- Stage 4: Deception Layer ----
         _update_task(task_id, "deception", 70, "Activating deception and neutralization layer...")
+        # deception_layer.py takes --verdict (MALWARE/SUSPICIOUS/CLEAN) and --pid
+        verdict_str = "MALWARE" if threat_type not in ("Clean", "Unknown") else "CLEAN"
         await _run_script_with_timeout(
             "deception_layer.py",
-            ["--classification", str(task_dir / "classification_result.json"),
-             "--output", str(task_dir)],
+            ["--pid", "-1",
+             "--verdict", verdict_str,
+             "--duration", "3"],
             timeout=45
         )
         _update_task(task_id, "deception", 82, "Deception layer deployed — malware neutralized")
 
         # ---- Stage 5: Forensic Report ----
         _update_task(task_id, "forensics", 85, "Building forensic evidence report...")
+        # forensic_logger.py takes --results-dir pointing to task result folder
         await _run_script_with_timeout(
             "forensic_logger.py",
-            ["--task-dir", str(task_dir), "--output", str(task_dir)],
+            ["--results-dir", str(task_dir)],
             timeout=30
         )
         _update_task(task_id, "forensics", 95, "Forensic report compiled")
@@ -261,35 +297,40 @@ async def _run_pipeline(task_id: str, file_path: Path, sha256: str) -> None:
 
 async def _run_script_with_timeout(script: str, args: list[str], timeout: int) -> bool:
     """
-    Run a Python script in subprocess with timeout.
+    Run a Python script in a thread pool executor to avoid Windows SelectorEventLoop
+    NotImplementedError with asyncio.create_subprocess_exec.
     Returns True on success, False on non-zero exit or timeout.
-    (brooks-lint Release It!: every external call gets a timeout)
     """
     import sys
+    import subprocess
+    import concurrent.futures
+
     cmd = [sys.executable, str(BASE_DIR / script)] + args
-    try:
-        proc = await asyncio.create_subprocess_exec(
-            *cmd,
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE,
-            cwd=str(BASE_DIR),
-        )
+
+    def _run_blocking() -> bool:
         try:
-            stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=timeout)
-            if proc.returncode != 0:
-                log.warning(f"{script} exited {proc.returncode}: {stderr.decode(errors='replace')[:300]}")
+            result = subprocess.run(
+                cmd,
+                capture_output=True,
+                cwd=str(BASE_DIR),
+                timeout=timeout,
+            )
+            if result.returncode != 0:
+                log.warning(f"{script} exited {result.returncode}: {result.stderr.decode(errors='replace')[:300]}")
                 return False
             return True
-        except asyncio.TimeoutError:
-            proc.kill()
+        except subprocess.TimeoutExpired:
             log.warning(f"{script} killed after {timeout}s timeout")
             return False
-    except FileNotFoundError:
-        log.error(f"Script not found: {script}")
-        return False
-    except Exception as e:
-        log.error(f"Failed to run {script}: {e}", exc_info=True)
-        return False
+        except FileNotFoundError:
+            log.error(f"Script not found: {script}")
+            return False
+        except Exception as e:
+            log.error(f"Failed to run {script}: {e}", exc_info=True)
+            return False
+
+    loop = asyncio.get_event_loop()
+    return await loop.run_in_executor(None, _run_blocking)
 
 
 # ---------------------------------------------------------------------------

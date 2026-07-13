@@ -496,15 +496,21 @@ class ClassificationParser:
     """Parses results/classification_result.json produced by classifier.py."""
 
     def __init__(self, data: Optional[Dict[str, Any]]) -> None:
-        self._d: Dict[str, Any] = data or {}
+        raw: Dict[str, Any] = data or {}
+        # classifier.py wraps results under final_verdict / ml_verdict.
+        # Flatten those into a single dict so all existing getters work.
+        final_v = _safe_dict(raw.get("final_verdict"))
+        ml_v    = _safe_dict(raw.get("ml_verdict"))
+        merged  = {**ml_v, **final_v}           # final_verdict wins on conflict
+        # Also keep any top-level keys as low-priority fallback
+        self._d: Dict[str, Any] = {**raw, **merged}
 
     def threat_detected(self) -> bool:
-        pred = self._d.get("prediction", self._d.get("label"))
-        if pred is None:
-            return False
-        if isinstance(pred, bool):
-            return pred
-        return _safe_str(pred).upper() not in ("BENIGN", "CLEAN", "SAFE", "0", "FALSE", "")
+        label = self._d.get("label", self._d.get("prediction"))
+        if label is not None:
+            return _safe_str(label).upper() not in ("BENIGN", "CLEAN", "SAFE", "0", "FALSE", "")
+        threat = self._d.get("threat_type", "")
+        return _safe_str(threat).upper() not in ("CLEAN", "UNKNOWN", "SAFE", "")
 
     def threat_type(self) -> str:
         return _safe_str(
