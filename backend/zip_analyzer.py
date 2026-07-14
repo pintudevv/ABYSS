@@ -32,14 +32,14 @@ log = logging.getLogger("zip_analyzer")
 # ---------------------------------------------------------------------------
 # Suspicious indicators
 # ---------------------------------------------------------------------------
-MALICIOUS_EXTENSIONS = {
-    ".exe", ".dll", ".bat", ".cmd", ".com", ".scr", ".pif",
-    ".vbs", ".vbe", ".js", ".jse", ".ws", ".wsh", ".hta",
-    ".ps1", ".ps2", ".psm1", ".psd1",
-    ".msi", ".msp", ".msc",
-    ".jar", ".war", ".ear",
-    ".lnk", ".inf", ".reg",
-    ".py", ".rb", ".pl", ".sh",
+CRITICAL_EXTENSIONS = {
+    ".exe", ".dll", ".scr", ".pif", ".com", ".vbs", ".vbe", ".hta", ".lnk"
+}
+
+SUSPICIOUS_EXTENSIONS = {
+    ".bat", ".cmd", ".ps1", ".ps2", ".psm1", ".psd1",
+    ".msi", ".msp", ".msc", ".reg", ".js", ".jse",
+    ".ws", ".wsh", ".inf", ".jar", ".war", ".ear"
 }
 
 OFFICE_MACRO_PATHS = {
@@ -97,7 +97,8 @@ def analyze_zip(file_path: Path, output_dir: Path) -> dict[str, Any]:
     # ---- Parse ZIP ----
     is_valid_zip = zipfile.is_zipfile(file_path)
     entries: list[dict[str, Any]] = []
-    malicious_files: list[str] = []
+    critical_files: list[str] = []
+    suspicious_ext_files: list[str] = []
     suspicious_files: list[str] = []
     path_traversal_files: list[str] = []
     double_ext_files: list[str] = []
@@ -143,9 +144,11 @@ def analyze_zip(file_path: Path, output_dir: Path) -> dict[str, Any]:
                     if DOUBLE_EXTENSION.search(name):
                         double_ext_files.append(name)
 
-                    # Malicious extension
-                    if ext in MALICIOUS_EXTENSIONS:
-                        malicious_files.append(name)
+                    # Critical / Suspicious extension checks
+                    if ext in CRITICAL_EXTENSIONS:
+                        critical_files.append(name)
+                    elif ext in SUSPICIOUS_EXTENSIONS:
+                        suspicious_ext_files.append(name)
 
                     # Nested archives
                     if ext in {".zip", ".rar", ".7z", ".gz", ".tar", ".bz2"}:
@@ -165,11 +168,11 @@ def analyze_zip(file_path: Path, output_dir: Path) -> dict[str, Any]:
 
                     # Suspicious filenames (social engineering)
                     if SUSPICIOUS_FILENAMES.search(Path(name).stem):
-                        if name not in malicious_files:
+                        if name not in critical_files and name not in suspicious_ext_files:
                             suspicious_files.append(name)
 
                     # Read first bytes to check for PE magic (disguised executables)
-                    if ext not in MALICIOUS_EXTENSIONS and not info.is_dir():
+                    if ext not in CRITICAL_EXTENSIONS and ext not in SUSPICIOUS_EXTENSIONS and not info.is_dir():
                         try:
                             header = zf.read(name)[:4]
                             if _is_pe(header):
@@ -183,13 +186,19 @@ def analyze_zip(file_path: Path, output_dir: Path) -> dict[str, Any]:
         except Exception as e:
             log.warning("ZIP read error: %s", e)
 
+    malicious_files = critical_files + suspicious_ext_files
+
     # ---- Heuristic scoring ----
     score = 0
     reasons: list[str] = []
 
-    if malicious_files:
-        score += 40
-        reasons.append(f"Malicious file types inside: {malicious_files[:5]} (+40)")
+    if critical_files:
+        score += 45
+        reasons.append(f"Critical execution files inside: {critical_files[:5]} (+45)")
+
+    if suspicious_ext_files:
+        score += 15
+        reasons.append(f"Suspicious script/installer files inside: {suspicious_ext_files[:5]} (+15)")
 
     if embedded_pe_files:
         score += 35
