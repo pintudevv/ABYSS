@@ -134,7 +134,7 @@ abyss/
 ### 1. Configure Host Environment
 Create a `.env` file inside the `backend/` directory:
 ```env
-ABYSS_VM_USER=piyuzz
+ABYSS_VM_USER=guest_vm_username_here
 ABYSS_VM_PASS=your_guest_vm_password_here
 ```
 
