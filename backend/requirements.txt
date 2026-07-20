@@ -22,7 +22,7 @@ python-magic>=0.4.27; sys_platform != 'win32'
 # ============================================================
 scikit-learn>=1.4.0
 xgboost>=2.0.0
-torch>=2.2.0                 # PyTorch for autoencoder
+# torch>=2.2.0                 # PyTorch for autoencoder (optional: excluded for Vercel 250MB size limit)
 # shap>=0.45.0                  # Optional: SHAP feature importance (requires llvmlite)
 pandas>=2.2.0
 numpy>=1.26.0
