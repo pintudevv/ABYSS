@@ -3,7 +3,7 @@
  * Connects to backend at http://localhost:8000
  */
 
-const RAW_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000';
+const RAW_URL = process.env.NEXT_PUBLIC_API_URL ?? 'https://abyss-1-d265.onrender.com';
 const BASE_URL = RAW_URL.replace(/\/+$/, '');
 
 // ─── Types ────────────────────────────────────────────────────────────────────
