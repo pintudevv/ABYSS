@@ -1291,6 +1291,8 @@ Examples:
                    help="Check if an IP should be blocked and exit")
     p.add_argument("--port",       type=int,   default=80,
                    help="Port for --check-ip (default 80)")
+    p.add_argument("--output",     type=str,   default=None,
+                   help="Output directory or file for deception_log.json")
     p.add_argument("--verbose",    action="store_true",
                    help="DEBUG logging")
     return p
@@ -1298,6 +1300,15 @@ Examples:
 
 def main() -> None:
     args = _build_parser().parse_args()
+    if args.output:
+        global LOG_PATH
+        out_p = Path(args.output)
+        if out_p.is_dir() or not out_p.suffix:
+            out_p.mkdir(parents=True, exist_ok=True)
+            LOG_PATH = out_p / "deception_log.json"
+        else:
+            out_p.parent.mkdir(parents=True, exist_ok=True)
+            LOG_PATH = out_p
 
     if args.verbose:
         logging.getLogger().setLevel(logging.DEBUG)

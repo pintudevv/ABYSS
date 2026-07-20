@@ -1385,7 +1385,8 @@ def run(results_dir: Path, analyst_id: str, pretty_json: bool) -> int:
             "Run the full pipeline for a complete report.",
             4 - sources_loaded,
         )
-        exit_code = 1
+        if sources_loaded == 0:
+            exit_code = 1
 
     # console print
     es      = _safe_dict(report.get("executive_summary"))

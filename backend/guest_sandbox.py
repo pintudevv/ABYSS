@@ -16,139 +16,137 @@ def main():
     pid = device.spawn([target_exe])
     session = device.attach(pid)
     
-    # Frida JavaScript hooking script
-    js_code = """
+    # Frida JavaScript hooking script - compatible with Frida 16+
+    js_code = r"""
     'use strict';
-    var _cachedModules = null;
     
     function findFunc(name) {
-        // Try static API (Frida older versions)
+        // Frida 16+: Process.enumerateModules() returns array of Module objects
+        // each with findExportByName() method
         try {
-            var p = Module.findExportByName(null, name);
-            if (p) return p;
-        } catch(e) {}
-        // Try instance-based search via cached module list (Frida 16+/17.x)
-        try {
-            if (!_cachedModules) _cachedModules = Process.enumerateModules();
-            for (var i = 0; i < _cachedModules.length; i++) {
+            const modules = Process.enumerateModules();
+            for (let i = 0; i < modules.length; i++) {
                 try {
-                    var addr = _cachedModules[i].findExportByName(name);
+                    const addr = modules[i].findExportByName(name);
                     if (addr) return addr;
-                } catch(ex) {}
+                } catch (_) {}
             }
-        } catch(e2) {}
+        } catch (_) {}
         return null;
     }
     
     function logCall(api, details) {
-        send(JSON.stringify({
-            api: api,
-            details: details
-        }));
+        send(JSON.stringify({ api: api, details: details }));
     }
     
-    // Hook CreateFile
-    var pCreateFileW = findFunc("CreateFileW");
+    // Hook CreateFileW
+    const pCreateFileW = findFunc("CreateFileW");
     if (pCreateFileW) {
         Interceptor.attach(pCreateFileW, {
-            onEnter: function(args) {
+            onEnter(args) {
                 try {
-                    var path = args[0].readUtf16String();
+                    const path = args[0].readUtf16String();
                     logCall("CreateFileW", path);
-                } catch(e) {}
+                } catch (_) {}
             }
         });
     }
     
-    var pCreateFileA = findFunc("CreateFileA");
+    // Hook CreateFileA
+    const pCreateFileA = findFunc("CreateFileA");
     if (pCreateFileA) {
         Interceptor.attach(pCreateFileA, {
-            onEnter: function(args) {
+            onEnter(args) {
                 try {
-                    var path = args[0].readAnsiString();
+                    const path = args[0].readAnsiString();
                     logCall("CreateFileA", path);
-                } catch(e) {}
+                } catch (_) {}
             }
         });
     }
     
-    // Hook RegOpenKeyEx
-    var pRegOpenKeyExW = findFunc("RegOpenKeyExW");
+    // Hook RegOpenKeyExW
+    const pRegOpenKeyExW = findFunc("RegOpenKeyExW");
     if (pRegOpenKeyExW) {
         Interceptor.attach(pRegOpenKeyExW, {
-            onEnter: function(args) {
+            onEnter(args) {
                 try {
-                    var key = args[1].readUtf16String();
+                    const key = args[1].readUtf16String();
                     logCall("RegOpenKeyExW", key);
-                } catch(e) {}
+                } catch (_) {}
             }
         });
     }
-    var pRegOpenKeyExA = findFunc("RegOpenKeyExA");
+    
+    // Hook RegOpenKeyExA
+    const pRegOpenKeyExA = findFunc("RegOpenKeyExA");
     if (pRegOpenKeyExA) {
         Interceptor.attach(pRegOpenKeyExA, {
-            onEnter: function(args) {
+            onEnter(args) {
                 try {
-                    var key = args[1].readAnsiString();
+                    const key = args[1].readAnsiString();
                     logCall("RegOpenKeyExA", key);
-                } catch(e) {}
+                } catch (_) {}
             }
         });
     }
     
     // Hook VirtualAllocEx
-    var pVirtualAllocEx = findFunc("VirtualAllocEx");
+    const pVirtualAllocEx = findFunc("VirtualAllocEx");
     if (pVirtualAllocEx) {
         Interceptor.attach(pVirtualAllocEx, {
-            onEnter: function(args) {
+            onEnter() {
                 logCall("VirtualAllocEx", "allocating memory");
             }
         });
     }
     
     // Hook WriteProcessMemory
-    var pWriteProcessMemory = findFunc("WriteProcessMemory");
+    const pWriteProcessMemory = findFunc("WriteProcessMemory");
     if (pWriteProcessMemory) {
         Interceptor.attach(pWriteProcessMemory, {
-            onEnter: function(args) {
+            onEnter() {
                 logCall("WriteProcessMemory", "writing to process memory");
             }
         });
     }
     
     // Hook CreateRemoteThread
-    var pCreateRemoteThread = findFunc("CreateRemoteThread");
+    const pCreateRemoteThread = findFunc("CreateRemoteThread");
     if (pCreateRemoteThread) {
         Interceptor.attach(pCreateRemoteThread, {
-            onEnter: function(args) {
+            onEnter() {
                 logCall("CreateRemoteThread", "spawning thread in remote process");
             }
         });
     }
     
     // Hook CryptEncrypt
-    var pCryptEncrypt = findFunc("CryptEncrypt");
+    const pCryptEncrypt = findFunc("CryptEncrypt");
     if (pCryptEncrypt) {
         Interceptor.attach(pCryptEncrypt, {
-            onEnter: function(args) {
+            onEnter() {
                 logCall("CryptEncrypt", "encrypting data block");
             }
         });
     }
     
-    // Hook Connect
-    var connectPtr = findFunc("connect");
+    // Hook connect
+    const connectPtr = findFunc("connect");
     if (connectPtr) {
         Interceptor.attach(connectPtr, {
-            onEnter: function(args) {
+            onEnter(args) {
                 try {
-                    var port = (args[1].readU8(2) << 8) | args[1].readU8(3);
-                    var ip = args[1].readU8(4) + "." + args[1].readU8(5) + "." + args[1].readU8(6) + "." + args[1].readU8(7);
+                    const port = (args[1].readU8(2) << 8) | args[1].readU8(3);
+                    const ip = args[1].readU8(4) + "." + args[1].readU8(5) + "." + 
+                               args[1].readU8(6) + "." + args[1].readU8(7);
                     logCall("connect", ip + ":" + port);
-                } catch(e) {}
+                } catch (_) {}
             }
         });
     }
+    
+    send(JSON.stringify({ api: '__frida_ready__', details: 'hooks installed' }));
     """
     
     api_calls_log = []

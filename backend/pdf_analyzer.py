@@ -27,6 +27,9 @@ from pathlib import Path
 from datetime import datetime, timezone
 from typing import Any
 
+# Shared types
+from shared_types import get_empty_pe_analysis, get_base_file_info, get_base_heuristic_risk
+
 log = logging.getLogger("pdf_analyzer")
 
 # ---------------------------------------------------------------------------
@@ -256,24 +259,9 @@ def analyze_pdf(file_path: Path, output_dir: Path) -> dict[str, Any]:
             "suspicious_hits":  [{"pattern": p, "context": ""} for p in js_pattern_hits],
             "total_strings":    len(re.findall(r'[\x20-\x7e]{4,}', text)),
         },
-        "heuristic_risk": {
-            "score":      score,
-            "risk_level": risk_level,
-            "reasons":    reasons,
-        },
+        "heuristic_risk": get_base_heuristic_risk(score, risk_level, reasons),
         # Stub PE fields so classifier.py doesn't crash on missing keys
-        "pe_analysis": {
-            "is_valid_pe":          False,
-            "sections":             [],
-            "imports":              {},
-            "dangerous_imports":    [],
-            "suspicious_import_count": 0,
-            "total_import_count":   0,
-            "is_packed":            False,
-            "overall_entropy":      round(max_stream_entropy, 4),
-            "tls_callbacks":        [],
-            "has_overlay":          False,
-        },
+        "pe_analysis": get_empty_pe_analysis(max_stream_entropy),
     }
 
     output_path = output_dir / "features.json"

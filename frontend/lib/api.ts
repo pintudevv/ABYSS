@@ -39,6 +39,14 @@ export interface UploadResponse {
   message: string;
 }
 
+export interface TelemetryLog {
+  timestamp: string;
+  stage: string;
+  level: 'INFO' | 'HOOK' | 'BLOCK' | 'MOCK' | 'WARN' | 'ERROR' | 'SUCCESS';
+  message: string;
+  details?: string;
+}
+
 export interface StatusResponse {
   task_id: string;
   status: TaskStatus;
@@ -46,6 +54,7 @@ export interface StatusResponse {
   current_stage: string;
   message: string;
   elapsed_seconds: number;
+  telemetry_logs?: TelemetryLog[];
 }
 
 export interface StolenFile {
@@ -115,6 +124,7 @@ export interface ThreatReport {
   // Intelligence
   shap_features: ShapFeature[];
   timeline: TimelineEvent[];
+  telemetry_logs?: TelemetryLog[];
   // Summary
   risk_score: number; // 0-100
   risk_level?: string;
@@ -295,6 +305,10 @@ export async function getReport(taskId: string): Promise<ThreatReport> {
   const sanitized = encodeURIComponent(taskId);
   const backendData = await apiFetch<BackendReport>(`/results/${sanitized}`);
 
+  return mapBackendReport(backendData, taskId);
+}
+
+export function mapBackendReport(backendData: BackendReport, taskId: string): ThreatReport {
   const shapExpl = backendData.classification?.ml_verdict?.shap_explanation || [];
   const maxAbsImpact = shapExpl.reduce((max, f) => Math.max(max, Math.abs(f.impact)), 0) || 1;
 
@@ -366,6 +380,7 @@ export async function getReport(taskId: string): Promise<ThreatReport> {
   };
 }
 
+
 /**
  * Download the forensic text report.
  * Returns a Blob URL for triggering download.
@@ -396,14 +411,14 @@ export async function downloadReport(taskId: string): Promise<string> {
 // ─── Utility ──────────────────────────────────────────────────────────────────
 
 export function formatFileSize(bytes: number): string {
-  if (bytes === 0) return '0 B';
+  if (!bytes || bytes === 0) return '0 B';
   const units = ['B', 'KB', 'MB', 'GB'];
   const i = Math.floor(Math.log(bytes) / Math.log(1024));
   return `${(bytes / Math.pow(1024, i)).toFixed(2)} ${units[i]}`;
 }
 
 export function formatDuration(seconds: number): string {
-  if (seconds < 60) return `${seconds.toFixed(1)}s`;
+  if (!seconds || seconds < 60) return `${(seconds || 0).toFixed(1)}s`;
   const m = Math.floor(seconds / 60);
   const s = Math.floor(seconds % 60);
   return `${m}m ${s}s`;

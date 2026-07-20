@@ -1,0 +1,32 @@
+{
+  "timestamp": "2026-07-18",
+  "dataset": "EMBER 2018",
+  "train_samples": 10909,
+  "test_samples": 3000,
+  "random_forest": {
+    "accuracy": 0.86,
+    "n_estimators": 100,
+    "max_depth": 15
+  },
+  "xgboost": {
+    "accuracy": 0.891,
+    "n_estimators": 100,
+    "max_depth": 6,
+    "learning_rate": 0.1
+  },
+  "lightgbm": {
+    "accuracy": 0.8776666666666667,
+    "n_estimators": 100,
+    "max_depth": 6,
+    "learning_rate": 0.1,
+    "num_leaves": 63
+  },
+  "autoencoder": {
+    "threshold_95th_percentile": 4.453196597099304,
+    "fpr": 0.05059920106524634,
+    "tpr": 0.038050734312416554,
+    "architecture": "Linear(2381->256->64->256->2381)",
+    "epochs": 10,
+    "lr": 0.002
+  }
+}

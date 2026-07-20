@@ -1,0 +1,20 @@
+{
+  "generated_at": "2026-07-18T06:50:29.259598Z",
+  "models": {
+    "rf_model.pkl": {
+      "sha256": "2c8d92bf779896a48306cd493873955c51c42f8d4d9cb957cf057737d90d3a5b",
+      "size_bytes": 7905083,
+      "size_mb": 7.54
+    },
+    "xgboost_model.pkl": {
+      "sha256": "670fcd6a2f2e165df8a398ef10c656546d840c5faa130bdfc7c350222ae358dd",
+      "size_bytes": 346052,
+      "size_mb": 0.33
+    },
+    "autoencoder.pt": {
+      "sha256": "b8f2c823a70968eb21890e3fd78c360f0454963d3dfeb729b69919177dd997bc",
+      "size_bytes": 10359259,
+      "size_mb": 9.88
+    }
+  }
+}

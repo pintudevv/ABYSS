@@ -1,159 +1,96 @@
 'use client';
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useMemo } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface CircularProgressProps {
-  /** 0–100 */
   value: number;
-  /** px */
   size?: number;
   strokeWidth?: number;
   color?: string;
-  trackColor?: string;
   label?: string;
   sublabel?: string;
-  animate?: boolean;
 }
 
 export default function CircularProgress({
   value,
   size = 140,
   strokeWidth = 8,
-  color = '#6366f1',
-  trackColor = 'rgba(255,255,255,0.06)',
-  label,
-  sublabel,
-  animate = true,
+  color = '#141413',
+  label = 'Confidence',
+  sublabel = 'ML Score',
 }: CircularProgressProps) {
-  const [displayed, setDisplayed] = useState(animate ? 0 : value);
-  const rafRef = useRef<number | null>(null);
-  const startRef = useRef<number | null>(null);
-  const DURATION = 1200; // ms
+  const progress = Math.max(0, Math.min(100, value));
 
-  const radius = (size - strokeWidth) / 2;
-  const circumference = 2 * Math.PI * radius;
-  const progress = Math.min(100, Math.max(0, displayed));
-  const dashOffset = circumference - (progress / 100) * circumference;
-
-  useEffect(() => {
-    if (!animate) {
-      setDisplayed(value);
-      return;
-    }
-
-    const from = displayed;
-    const to = value;
-
-    const tick = (timestamp: number) => {
-      if (startRef.current === null) startRef.current = timestamp;
-      const elapsed = timestamp - startRef.current;
-      const t = Math.min(elapsed / DURATION, 1);
-      // Apple spring easing approximation
-      const eased = 1 - Math.pow(1 - t, 3);
-      setDisplayed(from + (to - from) * eased);
-
-      if (t < 1) {
-        rafRef.current = requestAnimationFrame(tick);
-      } else {
-        setDisplayed(to);
-      }
-    };
-
-    startRef.current = null;
-    rafRef.current = requestAnimationFrame(tick);
-
-    return () => {
-      if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [value, animate]);
-
-  const cx = size / 2;
-  const cy = size / 2;
+  const { radius, circumference, strokeDashoffset, tipX, tipY } = useMemo(() => {
+    const r = (size - strokeWidth) / 2;
+    const c = 2 * Math.PI * r;
+    const offset = c * (1 - progress / 100);
+    const angle = (progress / 100) * 2 * Math.PI - Math.PI / 2;
+    const cx = size / 2;
+    const cy = size / 2;
+    const x = cx + r * Math.cos(angle);
+    const y = cy + r * Math.sin(angle);
+    return { radius: r, circumference: c, strokeDashoffset: offset, tipX: x, tipY: y };
+  }, [progress, size, strokeWidth]);
 
   return (
-    <div
-      style={{
-        position: 'relative',
-        width: size,
-        height: size,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        flexShrink: 0,
-      }}
+    <motion.div
+      style={{ position: 'relative', width: size, height: size }}
+      initial={{ opacity: 0, scale: 0.9 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ type: 'spring', stiffness: 200, damping: 20, duration: 0.6 }}
     >
-      {/* Outer glow ring */}
-      <div
-        style={{
-          position: 'absolute',
-          inset: 0,
-          borderRadius: '50%',
-          background: `radial-gradient(circle, ${color}18 0%, transparent 70%)`,
-          pointerEvents: 'none',
-        }}
-      />
-
-      <svg
-        width={size}
-        height={size}
-        viewBox={`0 0 ${size} ${size}`}
-        style={{ position: 'absolute', top: 0, left: 0, transform: 'rotate(-90deg)' }}
-      >
-        {/* Track */}
+      {/* Background track */}
+      <svg width={size} height={size} style={{ transform: 'rotate(-90deg)' }}>
         <circle
-          cx={cx}
-          cy={cy}
+          cx={size / 2}
+          cy={size / 2}
           r={radius}
           fill="none"
-          stroke={trackColor}
+          stroke="rgba(255, 255, 255, 0.1)"
           strokeWidth={strokeWidth}
         />
 
-        {/* Outer decorative ring */}
-        <circle
-          cx={cx}
-          cy={cy}
-          r={radius + strokeWidth / 2 + 4}
-          fill="none"
-          stroke="rgba(255,255,255,0.04)"
-          strokeWidth={1}
-          strokeDasharray="4 6"
-        />
-
-        {/* Progress arc */}
-        <circle
-          cx={cx}
-          cy={cy}
+        {/* Progress ring */}
+        <motion.circle
+          cx={size / 2}
+          cy={size / 2}
           r={radius}
           fill="none"
           stroke={color}
           strokeWidth={strokeWidth}
           strokeLinecap="round"
           strokeDasharray={circumference}
-          strokeDashoffset={dashOffset}
-          style={{
-            filter: `drop-shadow(0 0 8px ${color}90)`,
-            transition: animate ? 'none' : 'stroke-dashoffset 0.8s cubic-bezier(0.16,1,0.3,1)',
-          }}
+          strokeDashoffset={strokeDashoffset}
+          initial={{ strokeDashoffset: circumference }}
+          animate={{ strokeDashoffset }}
+          transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1] }}
         />
 
         {/* Tip dot */}
-        {progress > 2 && (
-          <circle
-            cx={cx + radius * Math.cos((2 * Math.PI * progress) / 100 - Math.PI / 2)}
-            cy={cy + radius * Math.sin((2 * Math.PI * progress) / 100 - Math.PI / 2)}
-            r={strokeWidth / 2 + 1}
-            fill={color}
-            style={{ filter: `drop-shadow(0 0 6px ${color})` }}
-            transform={`rotate(0 ${cx} ${cy})`}
-          />
-        )}
+        <AnimatePresence>
+          {progress > 2 && (
+            <motion.circle
+              key="tip"
+              cx={tipX}
+              cy={tipY}
+              r={strokeWidth / 2 + 1}
+              fill={color}
+              initial={{ opacity: 0, scale: 0 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0 }}
+              transition={{ type: 'spring', stiffness: 400, damping: 20 }}
+            />
+          )}
+        </AnimatePresence>
       </svg>
 
       {/* Center content */}
-      <div
+      <motion.div
         style={{
+          position: 'absolute',
+          inset: 0,
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
@@ -161,25 +98,40 @@ export default function CircularProgress({
           gap: 2,
           zIndex: 1,
         }}
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.4, duration: 0.3 }}
       >
-        <span
+        <motion.span
           style={{
             fontSize: size < 100 ? 18 : 26,
-            fontWeight: 700,
-            color: color,
-            fontFamily: "'Inter', sans-serif",
+            fontWeight: 800,
+            color,
+            fontFamily: "'JetBrains Mono', monospace",
             lineHeight: 1,
-            textShadow: `0 0 16px ${color}80`,
           }}
         >
-          {Math.round(progress)}%
-        </span>
+          <AnimatePresence mode="wait">
+            <motion.span
+              key={Math.round(progress)}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.2 }}
+            >
+              {Math.round(progress)}%
+            </motion.span>
+          </AnimatePresence>
+        </motion.span>
         {label && (
-          <span
+          <motion.span
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.5, duration: 0.3 }}
             style={{
               fontSize: 10,
               fontWeight: 600,
-              color: 'rgba(255,255,255,0.5)',
+              color: '#A1A1AA',
               letterSpacing: '0.08em',
               textTransform: 'uppercase',
               textAlign: 'center',
@@ -187,20 +139,23 @@ export default function CircularProgress({
             }}
           >
             {label}
-          </span>
+          </motion.span>
         )}
         {sublabel && (
-          <span
+          <motion.span
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.6, duration: 0.3 }}
             style={{
               fontSize: 9,
-              color: 'rgba(255,255,255,0.3)',
+              color: '#71717A',
               textAlign: 'center',
             }}
           >
             {sublabel}
-          </span>
+          </motion.span>
         )}
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 }

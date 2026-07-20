@@ -27,6 +27,8 @@ from pathlib import Path
 from datetime import datetime, timezone
 from typing import Any
 
+from shared_types import get_empty_pe_analysis, get_base_heuristic_risk
+
 log = logging.getLogger("zip_analyzer")
 
 # ---------------------------------------------------------------------------
@@ -196,6 +198,16 @@ def analyze_zip(file_path: Path, output_dir: Path) -> dict[str, Any]:
         score += 45
         reasons.append(f"Critical execution files inside: {critical_files[:5]} (+45)")
 
+    # Check if archive is a legitimate web/software source code repository
+    is_source_repository = any(
+        Path(e["name"]).name.lower() in {"package.json", "tsconfig.json", "jsconfig.json", "cargo.toml", "pyproject.toml", "go.mod", "webpack.config.js", "craco.config.js"}
+        for e in entries
+    )
+
+    if is_source_repository:
+        # Exclude standard web/app source code JS files from suspicious script count
+        suspicious_ext_files = [f for f in suspicious_ext_files if not f.lower().endswith((".js", ".jsx", ".ts", ".tsx"))]
+
     if suspicious_ext_files:
         score += 15
         reasons.append(f"Suspicious script/installer files inside: {suspicious_ext_files[:5]} (+15)")
@@ -286,23 +298,8 @@ def analyze_zip(file_path: Path, output_dir: Path) -> dict[str, Any]:
             "suspicious_hits": [{"pattern": f, "context": "zip_entry"} for f in malicious_files],
             "total_strings":   len(entries),
         },
-        "heuristic_risk": {
-            "score":      score,
-            "risk_level": risk_level,
-            "reasons":    reasons,
-        },
-        "pe_analysis": {
-            "is_valid_pe":             False,
-            "sections":                [],
-            "imports":                 {},
-            "dangerous_imports":       [],
-            "suspicious_import_count": 0,
-            "total_import_count":      0,
-            "is_packed":               False,
-            "overall_entropy":         0.0,
-            "tls_callbacks":           [],
-            "has_overlay":             False,
-        },
+        "heuristic_risk": get_base_heuristic_risk(score, risk_level, reasons),
+        "pe_analysis": get_empty_pe_analysis(),
     }
 
     output_path = output_dir / "features.json"
