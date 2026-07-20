@@ -1,0 +1,6 @@
+# Ignore parent backend and non-frontend assets
+../backend/
+../training/
+../mock_data/
+*.exe
+*.py
