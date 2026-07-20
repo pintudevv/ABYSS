@@ -1224,7 +1224,7 @@ export default function UploadPage() {
             >
               ABYSS detonates suspicious files in isolated hypervisor environments,
               intercepts API calls through Frida instrumentation, and runs a
-              stacked ML ensemble to classify threats â€” in under two seconds.
+              stacked ML ensemble to classify threats — in under two seconds.
             </motion.p>
 
             {/* CTA row */}
@@ -1318,7 +1318,7 @@ export default function UploadPage() {
                 Drop your file.
               </h2>
               <p style={{ fontSize: "var(--step-0)", color: C.muted, lineHeight: 1.75, marginBottom: 36 }}>
-                Supports EXE, DLL, ZIP, PDF, DOCX â€” up to 200 MB.
+                Supports EXE, DLL, ZIP, PDF, DOCX — up to 200 MB.
                 The full analysis pipeline runs automatically.
               </p>
             </Reveal>
@@ -1389,11 +1389,11 @@ export default function UploadPage() {
             </h2>
           </Reveal>
 
-          {/* Full-bleed grid â€” 3 cols separated by 1px borders */}
+          {/* Full-bleed grid — 3 cols separated by 1px borders */}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 1, background: C.border }}>
             {[
               { n: "01", title: "Static Heuristics", tag: "< 80 ms", tagColor: C.muted,
-                body: "PE header inspection, section entropy calculation, import hash fingerprinting, packer and cryptor detection â€” before a single instruction executes.",
+                body: "PE header inspection, section entropy calculation, import hash fingerprinting, packer and cryptor detection — before a single instruction executes.",
                 detail: ["Entropy threshold: 7.0", "Import hash matching", "TLS callback detection", "Overlay analysis"] },
               { n: "02", title: "Sandbox Profiling", tag: "Isolated VM", tagColor: C.muted,
                 body: "Executes the binary inside an instrumented hypervisor. Full process tree tracing, registry mutation logs, filesystem write interception, and outbound socket mapping.",
