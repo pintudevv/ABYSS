@@ -40,7 +40,7 @@ if sys.platform == "win32":
 # ---------------------------------------------------------------------------
 # Paths
 # ---------------------------------------------------------------------------
-# Serverless read-only filesystem check (e.g. Vercel)
+BASE_DIR = Path(__file__).parent
 IS_VERCEL = "VERCEL" in os.environ or os.environ.get("AWS_LAMBDA_FUNCTION_NAME") is not None
 
 if IS_VERCEL:
