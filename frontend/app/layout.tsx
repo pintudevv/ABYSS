@@ -5,6 +5,14 @@ import { Providers } from "@/src/providers";
 export const metadata: Metadata = {
   title: "ABYSS — Hybrid ML Malware Sandbox & Deception",
   description: "Semester project malware instrumentation, analysis, and forensics panel.",
+  icons: {
+    icon: [
+      { url: "/favicon.svg", type: "image/svg+xml" },
+      { url: "/icon.svg", type: "image/svg+xml" },
+    ],
+    shortcut: "/favicon.svg",
+    apple: "/favicon.svg",
+  },
 };
 
 export default function RootLayout({
