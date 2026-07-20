@@ -17,11 +17,11 @@ export default function TelemetryTerminal({ logs, isComplete, isFailed }: Teleme
   const [copied, setCopied] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const logEndRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (autoScroll && logEndRef.current) {
-      logEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    if (autoScroll && containerRef.current) {
+      containerRef.current.scrollTop = containerRef.current.scrollHeight;
     }
   }, [logs, autoScroll]);
 
@@ -229,6 +229,7 @@ export default function TelemetryTerminal({ logs, isComplete, isFailed }: Teleme
 
       {/* Terminal Log Viewport */}
       <div
+        ref={containerRef}
         style={{
           height: isExpanded ? 480 : 260,
           overflowY: 'auto',
@@ -321,7 +322,6 @@ export default function TelemetryTerminal({ logs, isComplete, isFailed }: Teleme
             );
           })
         )}
-        <div ref={logEndRef} />
       </div>
     </motion.div>
   );
