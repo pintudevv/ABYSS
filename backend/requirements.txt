@@ -14,8 +14,8 @@ aiofiles>=23.0.0
 # ============================================================
 pefile>=2023.2.7             # PE header, imports, sections analysis
 lief>=0.14.0                 # Deep binary analysis
-python-magic-bin>=0.4.14     # File type detection (Windows: use python-magic-bin)
-# For Linux/Mac use: python-magic>=0.4.27
+python-magic-bin>=0.4.14; sys_platform == 'win32'
+python-magic>=0.4.27; sys_platform != 'win32'
 
 # ============================================================
 # ML / Data Science (Step 2 & 4)
