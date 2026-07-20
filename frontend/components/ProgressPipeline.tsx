@@ -114,8 +114,7 @@ export default function ProgressPipeline({
 
   return (
     <motion.div
-      className="border border-zinc-200 bg-white"
-      style={{ padding: '32px 28px', width: '100%' }}
+      style={{ padding: "32px 28px", width: "100%", background: "rgba(13, 13, 18, 0.85)", backdropFilter: "blur(20px)", border: "1px solid rgba(255, 255, 255, 0.08)", borderRadius: 16 }}
       initial="hidden"
       animate="visible"
       variants={containerVariants}
@@ -162,7 +161,7 @@ export default function ProgressPipeline({
           >
             <motion.p
               style={{
-                color: isFailed ? '#EF4444' : isComplete ? '#10B981' : '#111111',
+                color: isFailed ? '#EF4444' : isComplete ? '#10B981' : '#F4F4F6',
                 fontWeight: 600,
                 fontSize: 15,
                 marginBottom: 2,
@@ -175,7 +174,7 @@ export default function ProgressPipeline({
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.15 }}
-                style={{ color: 'rgba(0,0,0,0.4)', fontSize: 12 }}
+                style={{ color: '#A1A1AA', fontSize: 12 }}
               >
                 {message}
               </motion.p>
