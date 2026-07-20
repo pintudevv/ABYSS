@@ -40,14 +40,26 @@ if sys.platform == "win32":
 # ---------------------------------------------------------------------------
 # Paths
 # ---------------------------------------------------------------------------
-BASE_DIR = Path(__file__).parent
-RESULTS_DIR = BASE_DIR / "results"
-MOCK_DATA_DIR = BASE_DIR / "mock_data"
-MODELS_DIR = BASE_DIR / "models"
-UPLOAD_DIR = BASE_DIR / "uploads"
+# Serverless read-only filesystem check (e.g. Vercel)
+IS_VERCEL = "VERCEL" in os.environ or os.environ.get("AWS_LAMBDA_FUNCTION_NAME") is not None
 
-for d in (RESULTS_DIR, MOCK_DATA_DIR, MODELS_DIR, UPLOAD_DIR):
-    d.mkdir(exist_ok=True)
+if IS_VERCEL:
+    TMP_DIR = Path("/tmp")
+    RESULTS_DIR = TMP_DIR / "abyss_results"
+    UPLOAD_DIR = TMP_DIR / "abyss_uploads"
+    MOCK_DATA_DIR = BASE_DIR / "mock_data"
+    MODELS_DIR = BASE_DIR / "models"
+else:
+    RESULTS_DIR = BASE_DIR / "results"
+    UPLOAD_DIR = BASE_DIR / "uploads"
+    MOCK_DATA_DIR = BASE_DIR / "mock_data"
+    MODELS_DIR = BASE_DIR / "models"
+
+for d in (RESULTS_DIR, UPLOAD_DIR):
+    try:
+        d.mkdir(exist_ok=True, parents=True)
+    except Exception as err:
+        log.warning(f"Could not create directory {d}: {err}")
 
 # Hash → task_id cache (in-memory; survives process restart via cache.json)
 CACHE_FILE = RESULTS_DIR / "hash_cache.json"
@@ -446,9 +458,17 @@ app.add_middleware(
 )
 
 
-# ---------------------------------------------------------------------------
-# Routes
-# ---------------------------------------------------------------------------
+@app.get("/", tags=["System"])
+async def root():
+    """Root endpoint for Vercel health check & API status."""
+    return {
+        "service": "ABYSS Malware Detection API",
+        "status": "online",
+        "version": "1.0.0",
+        "timestamp": datetime.now().isoformat(),
+        "endpoints": ["/health", "/analyze", "/status/{task_id}", "/report/{task_id}", "/learning/stats"]
+    }
+
 
 @app.get("/health", response_model=HealthResponse, tags=["System"])
 async def health_check():
