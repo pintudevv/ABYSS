@@ -4,7 +4,7 @@ import React, { useEffect, useState, Suspense } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSearchParams, useRouter } from 'next/navigation';
 import ThreatReportView from '@/components/ThreatReport';
-import { downloadReport, ThreatReport, mapBackendReport } from '@/lib/api';
+import { downloadReport, ThreatReport, mapBackendReport, getReport } from '@/lib/api';
 import { Loader2, AlertCircle, Shield, ArrowLeft } from 'lucide-react';
 
 const pageVariants = {
@@ -41,21 +41,14 @@ function ReportContent() {
 
     const fetchReport = async () => {
       try {
-        const res = await fetch(`/api/report/${taskId}`);
-        if (!res.ok) {
-          throw new Error(`Failed to load report: ${res.status}`);
-        }
-        const data = await res.json();
+        const data = await getReport(taskId);
         if (mounted) {
-          setReport(mapBackendReport(data, taskId));
+          setReport(data);
+          setLoading(false);
         }
-
       } catch (err: unknown) {
         if (mounted) {
           setError(err instanceof Error ? err.message : 'Failed to load report');
-        }
-      } finally {
-        if (mounted) {
           setLoading(false);
         }
       }
