@@ -1,0 +1,6 @@
+# Tell Vercel to only build the Next.js frontend and ignore Python backend
+backend/
+training/
+mock_data/
+*.exe
+*.py
