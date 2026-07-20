@@ -18,10 +18,18 @@ import time
 from pathlib import Path
 from typing import Any
 
+import os
+
 log = logging.getLogger("abyss.learning")
 
+IS_VERCEL = "VERCEL" in os.environ or os.environ.get("AWS_LAMBDA_FUNCTION_NAME") is not None
 BASE_DIR = Path(__file__).parent
-MODELS_DIR = BASE_DIR / "models"
+
+if IS_VERCEL:
+    MODELS_DIR = Path("/tmp/abyss_models")
+else:
+    MODELS_DIR = BASE_DIR / "models"
+
 BUFFER_FILE = MODELS_DIR / "online_learning_buffer.jsonl"
 METRICS_FILE = MODELS_DIR / "online_learning_metrics.json"
 
