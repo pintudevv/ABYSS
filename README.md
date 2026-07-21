@@ -28,34 +28,26 @@
 
 ```mermaid
 flowchart TD
-    %% Custom Styling
-    classDef inputNode fill:#0f172a,stroke:#00d2ff,stroke-width:2px,color:#fff,rx:8px;
-    classDef staticStage fill:#1e1b4b,stroke:#818cf8,stroke-width:2px,color:#fff,rx:8px;
-    classDef dynamicStage fill:#31103f,stroke:#f43f5e,stroke-width:2px,color:#fff,rx:8px;
-    classDef mlStage fill:#451a03,stroke:#fbbf24,stroke-width:2px,color:#fff,rx:8px;
-    classDef deceptionStage fill:#022c22,stroke:#34d399,stroke-width:2px,color:#fff,rx:8px;
-    classDef cliStage fill:#111827,stroke:#06b6d4,stroke-width:2px,color:#fff,rx:8px;
-
-    File["📦 Uploaded Sample / Local System Audit"] :::inputNode
-
-    subgraph S1 ["🔍 Layer 1: Static PE & YARA Extraction"]
-        Static["• LIEF & pefile Parsing\n• PE Section Entropy\n• Suspicious String Signatures"] :::staticStage
+    File["Uploaded Sample / Local System Scan"]
+    
+    subgraph S1 ["Layer 1: Static PE & YARA Extraction"]
+        Static["LIEF & pefile Parsing<br/>PE Section Entropy<br/>Suspicious String Signatures"]
     end
 
-    subgraph S2 ["🧪 Layer 2: Dynamic Sandbox Detonation"]
-        Sandbox["• Frida Hook Engine\n• Win32 API Trace\n• Memory & File Audits"] :::dynamicStage
+    subgraph S2 ["Layer 2: Dynamic Sandbox Detonation"]
+        Sandbox["Frida Hook Engine<br/>Win32 API Trace<br/>Memory & File Audits"]
     end
 
-    subgraph S3 ["🧠 Layer 3: Hybrid ML & Zero-Day Model"]
-        ML["• Dual XGBoost & Random Forest\n• PyTorch Autoencoder Loss\n• SHAP Explainable Feature Impact"] :::mlStage
+    subgraph S3 ["Layer 3: Hybrid ML & Zero-Day Model"]
+        ML["Dual XGBoost & Random Forest<br/>PyTorch Autoencoder Loss<br/>SHAP Feature Impact"]
     end
 
-    subgraph S4 ["🎭 Layer 4: Active Honeypot Deception"]
-        Deception["• Decoy Discord LevelDB Tokens\n• Decoy Crypto Seed Vaults\n• Webhook Network Sinkhole\n• Keylogger (SetWindowsHookEx) Nulling\n• Screen Capture (BitBlt) Blanking"] :::deceptionStage
+    subgraph S4 ["Layer 4: Active Honeypot Deception"]
+        Deception["Decoy Discord LevelDB Tokens<br/>Decoy Crypto Seed Vaults<br/>Webhook Network Sinkhole<br/>Keylogger & Screen Capture Nulling"]
     end
 
-    subgraph S5 ["🖥️ Layer 5: Incident Response CLI (abyss)"]
-        CLI["• Task Manager Live Process Auditor\n• Authenticode Digital Signature Check\n• Masquerading Impersonation Detector\n• 1-Click Terminate / Neutralize\n• Boot Guard Windows Startup Sentinel"] :::cliStage
+    subgraph S5 ["Layer 5: Incident Response CLI (abyss)"]
+        CLI["Task Manager Live Process Auditor<br/>Authenticode Signature Check<br/>1-Click Terminate / Neutralize<br/>Boot Guard Windows Startup Sentinel"]
     end
 
     File --> S1
@@ -63,6 +55,20 @@ flowchart TD
     S2 --> S3
     S3 --> S4
     S4 --> S5
+
+    classDef default fill:#1e293b,stroke:#00d2ff,stroke-width:2px,color:#fff;
+    classDef staticStyle fill:#1e1b4b,stroke:#818cf8,stroke-width:2px,color:#fff;
+    classDef dynamicStyle fill:#31103f,stroke:#f43f5e,stroke-width:2px,color:#fff;
+    classDef mlStyle fill:#451a03,stroke:#fbbf24,stroke-width:2px,color:#fff;
+    classDef deceptionStyle fill:#022c22,stroke:#34d399,stroke-width:2px,color:#fff;
+    classDef cliStyle fill:#111827,stroke:#06b6d4,stroke-width:2px,color:#fff;
+
+    class File default;
+    class Static staticStyle;
+    class Sandbox dynamicStyle;
+    class ML mlStyle;
+    class Deception deceptionStyle;
+    class CLI cliStyle;
 ```
 
 ---
