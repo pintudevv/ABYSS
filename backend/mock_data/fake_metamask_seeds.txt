@@ -1,0 +1,13 @@
+# ABYSS DECEPTION HONEYPOT - DECOY CRYPTO SEED PHRASES
+# Any attempt to exfiltrate these seed phrases will trigger immediate sinkhole neutralization.
+
+WALLET_1 (MetaMask Main):
+ability acid acquire action adapt addict address adjust admit adult advance advice
+
+WALLET_2 (Phantom Solana):
+blade blanket blast blend bless blind blink block blood bloom blow blue
+
+WALLET_3 (Trust Wallet):
+cactus cage cake call calm camera camp can canal cancel candle candy
+
+EXFILTRATION_SINKHOLE_ACTIVE=TRUE

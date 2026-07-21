@@ -130,7 +130,11 @@ var SENSITIVE_FRAGMENTS = [
     'cookie', 'session', 'token', 'ntds', 'sam', 'lsass',
     '.kdb', '.kdbx', 'id_rsa', 'id_ed25519', 'id_ecdsa',
     'appdata', 'roaming', 'mozilla\\firefox', 'google\\chrome',
-    'microsoft\\edge', 'keychain', 'login data'
+    'microsoft\\edge', 'keychain', 'login data',
+    'discord', 'leveldb', 'discordcanary', 'discordptb',
+    'lightcord', 'vesktop', 'webhooks', 'discord.py',
+    'metamask', 'phantom', 'solflare', 'trustwallet', 'exodus',
+    'atomic', 'ronin', 'seed.txt', 'passphrase', 'keylog', 'keystrokes'
 ];
 
 // Ports that indicate C2 / exfiltration channels -- block these
@@ -173,7 +177,7 @@ var HIVE = {
 
 // ---- kernel32 : CreateFileW ------------------------------------------------
 
-var _CreateFileW = Module.findExportByName('kernel32.dll', 'CreateFileW');
+var _CreateFileW = Module.findExportByName(null, 'CreateFileW');
 if (_CreateFileW) {
     Interceptor.attach(_CreateFileW, {
         onEnter: function(args) {
@@ -195,7 +199,7 @@ if (_CreateFileW) {
 
 // ---- kernel32 : CreateFileA ------------------------------------------------
 
-var _CreateFileA = Module.findExportByName('kernel32.dll', 'CreateFileA');
+var _CreateFileA = Module.findExportByName(null, 'CreateFileA');
 if (_CreateFileA) {
     Interceptor.attach(_CreateFileA, {
         onEnter: function(args) {
@@ -218,7 +222,7 @@ if (_CreateFileA) {
 // ---- kernel32 : ReadFile ---------------------------------------------------
 // Log every ReadFile so we can correlate with blocked CreateFile calls.
 
-var _ReadFile = Module.findExportByName('kernel32.dll', 'ReadFile');
+var _ReadFile = Module.findExportByName(null, 'ReadFile');
 if (_ReadFile) {
     Interceptor.attach(_ReadFile, {
         onEnter: function(args) {
@@ -237,12 +241,12 @@ if (_ReadFile) {
 
 // ---- advapi32 : RegOpenKeyExW ----------------------------------------------
 
-var _RegOpenKeyExW = Module.findExportByName('advapi32.dll', 'RegOpenKeyExW');
+var _RegOpenKeyExW = Module.findExportByName(null, 'RegOpenKeyExW');
 if (_RegOpenKeyExW) {
     Interceptor.attach(_RegOpenKeyExW, {
         onEnter: function(args) {
             try {
-                var hive   = args[0].toUInt32().toString(16);
+                var hive   = args[0].toString(16);
                 var subkey = args[1].readUtf16String();
                 this.block = isSensitiveReg(subkey);
                 this.info  = {hive: HIVE[hive] || ('0x' + hive), subkey: subkey};
@@ -265,12 +269,12 @@ if (_RegOpenKeyExW) {
 
 // ---- advapi32 : RegOpenKeyExA ----------------------------------------------
 
-var _RegOpenKeyExA = Module.findExportByName('advapi32.dll', 'RegOpenKeyExA');
+var _RegOpenKeyExA = Module.findExportByName(null, 'RegOpenKeyExA');
 if (_RegOpenKeyExA) {
     Interceptor.attach(_RegOpenKeyExA, {
         onEnter: function(args) {
             try {
-                var hive   = args[0].toUInt32().toString(16);
+                var hive   = args[0].toString(16);
                 var subkey = args[1].readAnsiString();
                 this.block = isSensitiveReg(subkey);
                 this.info  = {hive: HIVE[hive] || ('0x' + hive), subkey: subkey};
@@ -293,7 +297,7 @@ if (_RegOpenKeyExA) {
 
 // ---- advapi32 : RegQueryValueExW -------------------------------------------
 
-var _RegQueryValueExW = Module.findExportByName('advapi32.dll', 'RegQueryValueExW');
+var _RegQueryValueExW = Module.findExportByName(null, 'RegQueryValueExW');
 if (_RegQueryValueExW) {
     Interceptor.attach(_RegQueryValueExW, {
         onEnter: function(args) {
@@ -308,7 +312,7 @@ if (_RegQueryValueExW) {
 
 // ---- ws2_32 : connect ------------------------------------------------------
 
-var _connect = Module.findExportByName('ws2_32.dll', 'connect');
+var _connect = Module.findExportByName(null, 'connect');
 if (_connect) {
     Interceptor.attach(_connect, {
         onEnter: function(args) {
@@ -338,7 +342,7 @@ if (_connect) {
 
 // ---- ws2_32 : send ---------------------------------------------------------
 
-var _send = Module.findExportByName('ws2_32.dll', 'send');
+var _send = Module.findExportByName(null, 'send');
 if (_send) {
     Interceptor.attach(_send, {
         onEnter: function(args) {
@@ -355,7 +359,7 @@ if (_send) {
 
 // ---- ws2_32 : WSASend ------------------------------------------------------
 
-var _WSASend = Module.findExportByName('ws2_32.dll', 'WSASend');
+var _WSASend = Module.findExportByName(null, 'WSASend');
 if (_WSASend) {
     Interceptor.attach(_WSASend, {
         onEnter: function(args) {
@@ -374,7 +378,7 @@ if (_WSASend) {
 // Classic clipboard-scraping / keylogger vector.
 // We return NULL so the malware thinks the clipboard is empty.
 
-var _GetClipboardData = Module.findExportByName('user32.dll', 'GetClipboardData');
+var _GetClipboardData = Module.findExportByName(null, 'GetClipboardData');
 if (_GetClipboardData) {
     Interceptor.attach(_GetClipboardData, {
         onEnter: function(args) {
@@ -384,6 +388,54 @@ if (_GetClipboardData) {
             emit('GetClipboardData',
                  {format: this.fmt},
                  'BLOCKED_NULL_RETURNED', 'NULL');
+            retval.replace(ptr(0));
+        }
+    });
+}
+
+// ---- user32 : SetWindowsHookExW / SetWindowsHookExA -----------------------
+// Keylogger vector -- return NULL handle to fail keyboard hook registration
+var _SetWindowsHookExW = Module.findExportByName(null, 'SetWindowsHookExW');
+if (_SetWindowsHookExW) {
+    Interceptor.attach(_SetWindowsHookExW, {
+        onEnter: function(args) { this.idHook = args[0].toInt32(); },
+        onLeave: function(retval) {
+            emit('SetWindowsHookExW', {idHook: this.idHook}, 'BLOCKED_KEYLOGGER_NULL_RETURNED', 'NULL');
+            retval.replace(ptr(0));
+        }
+    });
+}
+
+var _SetWindowsHookExA = Module.findExportByName(null, 'SetWindowsHookExA');
+if (_SetWindowsHookExA) {
+    Interceptor.attach(_SetWindowsHookExA, {
+        onEnter: function(args) { this.idHook = args[0].toInt32(); },
+        onLeave: function(retval) {
+            emit('SetWindowsHookExA', {idHook: this.idHook}, 'BLOCKED_KEYLOGGER_NULL_RETURNED', 'NULL');
+            retval.replace(ptr(0));
+        }
+    });
+}
+
+// ---- gdi32 : BitBlt / user32 : PrintWindow ---------------------------------
+// Screenshot grabber vector -- return FALSE so screen capture fails
+var _BitBlt = Module.findExportByName(null, 'BitBlt');
+if (_BitBlt) {
+    Interceptor.attach(_BitBlt, {
+        onEnter: function(args) { this.hdc = args[0]; },
+        onLeave: function(retval) {
+            emit('BitBlt', {hdc: this.hdc.toString()}, 'BLOCKED_SCREENSHOT_BLANK', 'FALSE');
+            retval.replace(ptr(0));
+        }
+    });
+}
+
+var _PrintWindow = Module.findExportByName(null, 'PrintWindow');
+if (_PrintWindow) {
+    Interceptor.attach(_PrintWindow, {
+        onEnter: function(args) { this.hwnd = args[0]; },
+        onLeave: function(retval) {
+            emit('PrintWindow', {hwnd: this.hwnd.toString()}, 'BLOCKED_SCREENSHOT_BLANK', 'FALSE');
             retval.replace(ptr(0));
         }
     });
@@ -552,7 +604,11 @@ class MockDataServer:
         "credentials.txt":   "fake_passwords.txt",
         "creds.txt":         "fake_passwords.txt",
         "logins.txt":        "fake_passwords.txt",
-        "wallet.dat":        "fake_credit_cards.txt",
+        "wallet.dat":        "fake_metamask_seeds.txt",
+        "seed.txt":          "fake_metamask_seeds.txt",
+        "seeds.txt":         "fake_metamask_seeds.txt",
+        "passphrase.txt":    "fake_metamask_seeds.txt",
+        "wallets.json":      "fake_wallet_addresses.json",
         "cc.txt":            "fake_credit_cards.txt",
         "cards.txt":         "fake_credit_cards.txt",
         "contacts.csv":      "fake_contacts.csv",
@@ -561,6 +617,8 @@ class MockDataServer:
         "cookies.sqlite":    "fake_cookies.db",
         "login data":        "fake_cookies.db",
         "login_data":        "fake_cookies.db",
+        "discord_tokens.json": "fake_discord_tokens.json",
+        "tokens.txt":        "fake_discord_tokens.json",
     }
 
     @classmethod
@@ -904,6 +962,12 @@ class FridaHookEngine:
         ("GetClipboardData",
          {"format": 1},
          "BLOCKED_NULL_RETURNED", "NULL"),
+        ("CreateFileW",
+         {"path": r"C:\Users\victim\AppData\Roaming\Discord\Local Storage\leveldb\000005.ldb"},
+         "BLOCKED_FAKE_HONEYPOT", "fake_discord_tokens.json"),
+        ("connect",
+         {"ip": "162.159.135.232", "port": 443, "domain": "discord.com/api/webhooks"},
+         "BLOCKED_SINKHOLE_NEUTRALIZED", "200 OK (FAKENET_SINKHOLE)"),
     ]
 
     def __init__(self, store: _LogStore, sinkhole: NetworkSinkhole) -> None:

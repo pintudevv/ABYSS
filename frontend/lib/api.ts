@@ -12,6 +12,8 @@ export type ThreatType =
   | 'Trojan'
   | 'Ransomware'
   | 'Spyware'
+  | 'Discord Grabber / InfoStealer'
+  | 'Crypto Wallet Drainer'
   | 'Adware'
   | 'Rootkit'
   | 'Worm'
@@ -152,10 +154,13 @@ async function apiFetch<T>(
   options?: RequestInit,
 ): Promise<T> {
   const url = `${BASE_URL}${path}`;
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 15000);
 
   let response: Response;
   try {
     response = await fetch(url, {
+      signal: controller.signal,
       headers: {
         Accept: 'application/json',
         ...options?.headers,
@@ -163,8 +168,14 @@ async function apiFetch<T>(
       ...options,
     });
   } catch (err: unknown) {
+    clearTimeout(timeoutId);
+    if (err instanceof Error && err.name === 'AbortError') {
+      throw new ApiError(408, 'Backend request timed out (15s limit)');
+    }
     const message = err instanceof Error ? err.message : 'Network error';
     throw new ApiError(0, `Failed to reach ABYSS backend: ${message}`);
+  } finally {
+    clearTimeout(timeoutId);
   }
 
   if (!response.ok) {

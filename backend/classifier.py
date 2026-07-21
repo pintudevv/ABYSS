@@ -589,8 +589,35 @@ class StealthClassifier:
             decision_path.append(f"Registry persistence hooks hit (+15)")
             shap_explanation.append({"feature": "persistence_registry", "value": float(len(susp_reg)), "impact": 15.0})
 
+        # Discord Grabber / InfoStealer checks
+        discord_score = 0
+        discord_terms = {"discord", "leveldb", "webhooks", "discordcanary", "discordptb", "lightcord", "vesktop", "discord.py"}
+        found_discord = [s for s in suspicious_hits if any(t in str(s).lower() for t in discord_terms)]
+        if found_discord:
+            discord_score = min(len(found_discord) * 20, 50)
+            decision_path.append(f"Discord Token Grabber / InfoStealer signatures detected: {found_discord[:3]} (+{discord_score})")
+            shap_explanation.append({"feature": "discord_grabber_signatures", "value": float(len(found_discord)), "impact": float(discord_score)})
+
+        # Crypto Wallet Drainer checks
+        crypto_score = 0
+        crypto_terms = {"metamask", "phantom", "solflare", "trustwallet", "exodus", "atomic", "ronin", "seed.txt", "passphrase", "wallet.dat"}
+        found_crypto = [s for s in suspicious_hits if any(t in str(s).lower() for t in crypto_terms)]
+        if found_crypto:
+            crypto_score = min(len(found_crypto) * 20, 50)
+            decision_path.append(f"Crypto Wallet Drainer signatures detected: {found_crypto[:3]} (+{crypto_score})")
+            shap_explanation.append({"feature": "crypto_drainer_signatures", "value": float(len(found_crypto)), "impact": float(crypto_score)})
+
+        # Keylogger / Screen Grabber API hooks check
+        keylog_apis = {"SetWindowsHookExW", "SetWindowsHookExA", "BitBlt", "PrintWindow", "GetClipboardData"}
+        found_keylog_apis = api_names.intersection(keylog_apis)
+        keylog_score = 0
+        if found_keylog_apis:
+            keylog_score = len(found_keylog_apis) * 20
+            decision_path.append(f"Keylogger / Screen Capture API hooks intercepted: {list(found_keylog_apis)} (+{keylog_score})")
+            shap_explanation.append({"feature": "keylogger_screengrabber_apis", "value": float(len(found_keylog_apis)), "impact": float(keylog_score)})
+
         # Compile final scores
-        behavior_score += max(ransomware_score, trojan_score, spyware_score)
+        behavior_score += max(ransomware_score, trojan_score, spyware_score, discord_score, crypto_score, keylog_score)
         total_score = min(static_score + behavior_score, 100)
 
         # Classification mapping
@@ -599,7 +626,9 @@ class StealthClassifier:
             scores = {
                 "Ransomware": ransomware_score + (15 if any("ransom" in s.get("pattern", "") for s in suspicious_hits) else 0),
                 "Trojan": trojan_score + (15 if pe.get("is_packed") else 0),
-                "Spyware": spyware_score + (15 if any("keylog" in s.get("pattern", "") for s in suspicious_hits) else 0),
+                "Spyware": spyware_score + keylog_score + (15 if any("keylog" in s.get("pattern", "") for s in suspicious_hits) else 0),
+                "Discord Grabber / InfoStealer": discord_score + (20 if found_discord else 0),
+                "Crypto Wallet Drainer": crypto_score + (20 if found_crypto else 0),
                 "Adware": len(urls) * 2,
             }
             max_threat = max(scores, key=scores.get)

@@ -1,0 +1,26 @@
+{
+  "warning": "ABYSS DECEPTION HONEYPOT - DO NOT USE",
+  "discord_tokens": [
+    {
+      "account": "DecoyAdmin",
+      "user_id": "102938475610293847",
+      "token": "NzgyOTE2MzA5MTgzOTI4MTky.ABYSS_DECEPTION_SINKHOLE_TOKEN_x9281a812n3k912z",
+      "email": "decoy_user_honeypot@abyss.internal",
+      "phone": "+1-555-019-2831",
+      "mfa_enabled": true,
+      "nitro": true
+    },
+    {
+      "account": "DecoyModerator",
+      "user_id": "987654321098765432",
+      "token": "mfa.ABYSS_HONEYPOT_SINKHOLE_TOKEN_918237129381239812391238",
+      "email": "mod_decoy@abyss.internal",
+      "phone": "+1-555-014-9921",
+      "mfa_enabled": true,
+      "nitro": false
+    }
+  ],
+  "exfiltration_webhooks_neutralized": [
+    "https://discord.com/api/webhooks/1234567890/ABYSS_SINKHOLED_WEBHOOK_KEY"
+  ]
+}

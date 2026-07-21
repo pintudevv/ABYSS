@@ -1,0 +1,20 @@
+{
+  "warning": "ABYSS DECEPTION HONEYPOT - DO NOT USE",
+  "decoy_crypto_wallets": [
+    {
+      "network": "Bitcoin (BTC)",
+      "address": "1ABYSSDeceptionSinkholeHoneypotBTC12345",
+      "balance_decoy": "1.45 BTC"
+    },
+    {
+      "network": "Ethereum (ETH)",
+      "address": "0xABYSS00000000000000000000000000000000ETH",
+      "balance_decoy": "12.8 ETH"
+    },
+    {
+      "network": "Solana (SOL)",
+      "address": "ABYSS111111111111111111111111111111111SOL",
+      "balance_decoy": "45.0 SOL"
+    }
+  ]
+}
