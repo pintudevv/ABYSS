@@ -1,178 +1,202 @@
-# ABYSS
-### **Multi-Dimensional Hybrid ML Malware Detection & Active Deception Sandbox**
+# ⚡ ABYSS — Multi-Dimensional Hybrid ML Cyber Threat Detection & Active Deception Platform
 
-```
-     ___       ______   ____    ____  _______.   _______.
-    /   \     |   _  \  \   \  /   / /       |  /       |
-   /  ^  \    |  |_)  |  \   \/   / |   (----` |   (----`
-  /  /_\  \   |   _  <    \_    _/   \   \      \   \    
- /  _____  \  |  |_)  |     |  | .----)   | .----)   |   
-/__/     \__\ |______/      |__| |_______/  |_______/    
-```
-<p align="left">
-  <img src="https://img.shields.io/badge/Python-3.10+-3776AB?style=flat-square&logo=python&logoColor=white" />
-  <img src="https://img.shields.io/badge/FastAPI-009688?style=flat-square&logo=fastapi&logoColor=white" />
-  <img src="https://img.shields.io/badge/Next.js-14-000000?style=flat-square&logo=nextdotjs&logoColor=white" />
-  <img src="https://img.shields.io/badge/TypeScript-5.0-3178C6?style=flat-square&logo=typescript&logoColor=white" />
-  <img src="https://img.shields.io/badge/VirtualBox-Sandbox-183A61?style=flat-square&logo=virtualbox&logoColor=white" />
-  <img src="https://img.shields.io/badge/Frida-Hooking-E34F26?style=flat-square&logo=frida&logoColor=white" />
+<p align="center">
+  <img src="https://readme-typing-svg.demolab.com?font=Inter&weight=700&size=24&duration=3000&pause=1000&color=00D2FF&center=true&vCenter=true&width=700&lines=Multi-Dimensional+Hybrid+ML+Threat+Detection;Active+Honeypot+Deception+%26+Network+Sinkhole;Discord+Grabber+%26+Crypto+Drainer+Neutralization;System+Incident+Response+CLI+(abyss)" alt="ABYSS Banner Typing SVG" />
+</p>
+
+<p align="center">
+  <a href="https://abyss-plum-theta.vercel.app"><img src="https://img.shields.io/badge/Live_Web_App-Vercel-000000?style=for-the-badge&logo=vercel&logoColor=white" /></a>
+  <a href="https://abyss-1-d265.onrender.com"><img src="https://img.shields.io/badge/Render_API-Backend-46E3B7?style=for-the-badge&logo=render&logoColor=white" /></a>
+  <img src="https://img.shields.io/badge/Python-3.10+-3776AB?style=for-the-badge&logo=python&logoColor=white" />
+  <img src="https://img.shields.io/badge/Next.js-14-000000?style=for-the-badge&logo=nextdotjs&logoColor=white" />
+  <img src="https://img.shields.io/badge/Frida-Live_Hooks-E34F26?style=for-the-badge&logo=frida&logoColor=white" />
+  <img src="https://img.shields.io/badge/Licence-MIT-00D2FF?style=for-the-badge" />
 </p>
 
 ---
 
-## Pipeline Architecture
+## 🛡️ Executive Summary
 
-The ABYSS engine processes untrusted files through a **5-Layer Security Stack**. Each layer acts as a separate dimension of analysis and mitigation:
+**ABYSS** is an end-to-end, zero-trust cyber threat intelligence, active deception, and incident response platform. Designed to combat modern infostealers, Discord token grabbers, crypto wallet drainers, keyloggers, and ransomware, ABYSS operates across two synchronized surfaces:
+
+1. 🌐 **Cloud Web Platform ([`abyss-plum-theta.vercel.app`](https://abyss-plum-theta.vercel.app))**: A glassmorphic dark security dashboard with dynamic file uploads, real-time pipeline polling, SHAP explainable AI charts, and attack timeline breakdown.
+2. 🖥️ **System Incident Response CLI (`abyss`)**: A 1-word terminal scanner that audits Task Manager processes via PowerShell, verifies Authenticode digital signatures, detects masquerading binaries, offers 1-click `[T]erminate / [N]eutralize / [S]kip` controls, and enforces an **Automated Boot Guard**.
+
+---
+
+## 📐 End-to-End Pipeline Architecture
 
 ```mermaid
 flowchart TD
-    %% Styling configurations
-    classDef detection fill:#ff3366,stroke:#ff88aa,stroke-width:2px,color:#fff,rx:8px,ry:8px;
-    classDef sandbox fill:#6366f1,stroke:#a5b4fc,stroke-width:2px,color:#fff,rx:8px,ry:8px;
-    classDef ml fill:#ffaa00,stroke:#ffe082,stroke-width:2px,color:#fff,rx:8px,ry:8px;
-    classDef deception fill:#00ff88,stroke:#a7f3d0,stroke-width:2px,color:#111,rx:8px,ry:8px;
-    classDef forensics fill:#06b6d4,stroke:#67e8f9,stroke-width:2px,color:#fff,rx:8px,ry:8px;
-    classDef fileNode fill:#1e293b,stroke:#475569,stroke-width:2px,color:#fff;
+    %% Custom Styling
+    classDef inputNode fill:#0f172a,stroke:#00d2ff,stroke-width:2px,color:#fff,rx:8px;
+    classDef staticStage fill:#1e1b4b,stroke:#818cf8,stroke-width:2px,color:#fff,rx:8px;
+    classDef dynamicStage fill:#31103f,stroke:#f43f5e,stroke-width:2px,color:#fff,rx:8px;
+    classDef mlStage fill:#451a03,stroke:#fbbf24,stroke-width:2px,color:#fff,rx:8px;
+    classDef deceptionStage fill:#022c22,stroke:#34d399,stroke-width:2px,color:#fff,rx:8px;
+    classDef cliStage fill:#111827,stroke:#06b6d4,stroke-width:2px,color:#fff,rx:8px;
 
-    File["Uploaded File (EXE / DLL / ZIP)"]
-    
-    subgraph L1 ["Dimension 1: Static Extractor"]
-        Static["LIEF & pefile parsing\n- Packing Detection\n- Entropy Calculations\n- Import Analysis"]
-    end
-    
-    subgraph L2 ["Dimension 2: Isolation Sandbox"]
-        Sandbox["VirtualBox Guest VM\n- AutoLogon Boot\n- Frida Hook Injection\n- Real-time Trace Log"]
-    end
-    
-    subgraph L3 ["Dimension 3: Hybrid ML Classifier"]
-        ML["XGBoost & Random Forest\n- PyTorch Autoencoder\n- SHAP Explanations"]
-    end
-    
-    subgraph L4 ["Dimension 4: Active Deception"]
-        Deception["Neutralization Hooks\n- Fake Registry Keys\n- Decoy Credentials\n- Network Sinkhole"]
-    end
-    
-    subgraph L5 ["Dimension 5: Forensic Logger"]
-        Forensics["Timeline Merger\n- unified_report.json\n- txt Summary"]
+    File["📦 Uploaded Sample / Local System Audit"] :::inputNode
+
+    subgraph S1 ["🔍 Layer 1: Static PE & YARA Extraction"]
+        Static["• LIEF & pefile Parsing\n• PE Section Entropy\n• Suspicious String Signatures"] :::staticStage
     end
 
-    File --> L1
-    L1 --> L2
-    L2 --> L3
-    L3 --> L4
-    L4 --> L5
+    subgraph S2 ["🧪 Layer 2: Dynamic Sandbox Detonation"]
+        Sandbox["• Frida Hook Engine\n• Win32 API Trace\n• Memory & File Audits"] :::dynamicStage
+    end
 
-    class File fileNode;
-    class Static detection;
-    class Sandbox sandbox;
-    class ML ml;
-    class Deception deception;
-    class Forensics forensics;
+    subgraph S3 ["🧠 Layer 3: Hybrid ML & Zero-Day Model"]
+        ML["• Dual XGBoost & Random Forest\n• PyTorch Autoencoder Loss\n• SHAP Explainable Feature Impact"] :::mlStage
+    end
+
+    subgraph S4 ["🎭 Layer 4: Active Honeypot Deception"]
+        Deception["• Decoy Discord LevelDB Tokens\n• Decoy Crypto Seed Vaults\n• Webhook Network Sinkhole\n• Keylogger (SetWindowsHookEx) Nulling\n• Screen Capture (BitBlt) Blanking"] :::deceptionStage
+    end
+
+    subgraph S5 ["🖥️ Layer 5: Incident Response CLI (abyss)"]
+        CLI["• Task Manager Live Process Auditor\n• Authenticode Digital Signature Check\n• Masquerading Impersonation Detector\n• 1-Click Terminate / Neutralize\n• Boot Guard Windows Startup Sentinel"] :::cliStage
+    end
+
+    File --> S1
+    S1 --> S2
+    S2 --> S3
+    S3 --> S4
+    S4 --> S5
 ```
-<p align="left">
-  <img src="https://img.shields.io/badge/Python-3.10+-3776AB?style=flat-square&logo=python&logoColor=white" />
-  <img src="https://img.shields.io/badge/FastAPI-009688?style=flat-square&logo=fastapi&logoColor=white" />
-  <img src="https://img.shields.io/badge/Next.js-14-000000?style=flat-square&logo=nextdotjs&logoColor=white" />
-  <img src="https://img.shields.io/badge/TypeScript-5.0-3178C6?style=flat-square&logo=typescript&logoColor=white" />
-  <img src="https://img.shields.io/badge/VirtualBox-Sandbox-183A61?style=flat-square&logo=virtualbox&logoColor=white" />
-  <img src="https://img.shields.io/badge/Frida-Hooking-E34F26?style=flat-square&logo=frida&logoColor=white" />
-</p>
 
 ---
 
-## 5-Layer Stack Anatomy
+## ✨ Core Security Features
 
-| Dimension | Engine Component | Target Indicators | Active Mitigation / Neutralization |
-| :--- | :--- | :--- | :--- |
-| **1. Static Analysis** | `static_analysis.py` | UPX/Packed headers, high entropy sections, suspicious strings. | Early threat grading (Risk Score 0-100). If score $\ge 95$, skips sandbox stage to protect VM resources. |
-| **2. Dynamic Profiling** | `sandbox_runner.py` | Runtime APIs (`VirtualAllocEx`, `WriteProcessMemory`, registry keys). | Automated headless rollback to `clean-baseline` snapshot, executing sample under Frida hooks. |
-| **3. Machine Learning** | `classifier.py` | 2,381-feature EMBER static array, reconstruction loss anomalies. | Dual XGBoost/RF threat classification. Autoencoder captures zero-day variance. SHAP renders impact chart. |
-| **4. Active Deception** | `deception_layer.py` | Credential stealing, clipboard sniffers, C2 connection relays. | Frida hooks return `FAKE_SUCCESS`, intercepting `CreateFile` / `GetClipboardData`. Sockets are exfil-sinkholed. |
-| **5. Forensics** | `forensic_logger.py` | Scattered system logs, API traces, honeypot access logs. | Reconstructs a chronological attack timeline with graded severity tags (Critical, High, Medium, Low). |
+| Icon | Feature Dimension | Implementation Details | Neutralization & Defense Strategy |
+| :---: | :--- | :--- | :--- |
+| 🪤 | **Discord Token Neutralization** | `backend/mock_data/fake_discord_tokens.json` | Intercepts LevelDB and token reads, returning trackable decoy credentials (`fake_discord_tokens.json`). |
+| 🌐 | **Webhook Network Sinkhole** | `backend/deception_layer.py` | Outbound HTTP/socket calls to `discord.com/api/webhooks/` return `200 OK (FAKE_SUCCESS)` with payload sinkholing. |
+| 🔑 | **Crypto Drainer Protection** | `backend/mock_data/fake_metamask_seeds.txt` | Serves fake 12-word BIP-39 seed phrases & wallet files whenever a process requests `wallet.dat` or `seed.txt`. |
+| ⌨️ | **Keylogger Neutralization** | `SetWindowsHookExW` / `SetWindowsHookExA` | Frida JS hook intercepts keyboard hook registrations and returns `NULL` handles so keyloggers fail. |
+| 📸 | **Screenshot Interception** | `BitBlt` / `PrintWindow` | Hooks GDI and User32 screen capture functions, returning `FALSE` blank framebuffers. |
+| 🧠 | **Hybrid ML Classifier** | `backend/classifier.py` | Trained on **1,000,000 EMBER samples** (XGBoost, Random Forest, PyTorch Autoencoder for Zero-Day detection). |
+| 📊 | **SHAP Explainable AI** | `shap.TreeExplainer` | Ranks top 10 feature impacts explaining the exact technical reasons behind every classification. |
+| 🖥️ | **System Incident CLI** | `abyss` / `backend/abyss_cli.py` | 1-word terminal scanner with Task Manager process auditing, Authenticode signature check, and masquerading detection. |
+| 🛡️ | **Automated Boot Guard** | `abyss --boot-scan` | Registers `HKCU\...\Run` startup sentinel that runs an automated <2s security check every time Windows boots. |
+| 🔒 | **Local Data Vault** | `~/.abyss/` (`C:\Users\<User>\.abyss\`) | Persists offline incident logs (`reports/`), user settings (`config.json`), and signatures (`signatures/`). |
 
 ---
 
-## Repository Structure
+## 💻 ABYSS CLI Workflow (`abyss`)
+
+Run the 1-word CLI command from any terminal:
+
+```bash
+abyss
+```
+
+### Incident Damage Assessment & Interactive Remediation UI
 
 ```
-abyss/
+==============================================================================
+     A B Y S S   C Y B E R   I N C I D E N T   C L I   S C A N N E R
+     System Incident Response & Compromise Remediation Engine v1.0
+==============================================================================
+  [MODE: ADMINISTRATOR (FULL PRIVILEGES)]
+
+[1/5] Scanning Memory & Running Process Threads...
+  [OK] Auditing 142 Active Task Manager Processes...
+
+[2/5] Scanning Discord & Browser Session Files...
+  [!] Discord session files found in AppData (LevelDB active)
+  [OK] Session file audit completed.
+
+[3/5] Auditing Crypto Wallet Vaults & Seed Files...
+  [OK] Crypto seed & extension audit completed.
+
+[4/5] Scanning Registry Startup Persistence Keys...
+  [OK] Startup Registry Run keys clean (Authenticode verified).
+
+[5/5] Verifying System Hosts File & Driver Integrity...
+  [OK] System Hosts file clean.
+
+=== INCIDENT DAMAGE ASSESSMENT SCORECARD ===================================================
+
+ [EXPOSED] AT RISK / EXPOSED DATA ITEMS:
+    * Flagged Processes     : 0 active items
+    * Session Data Paths    : 5 paths inspected
+    * Persistence Keys      : 0 registry items
+
+ [PROTECTED] SAVED & NEUTRALIZED DATA ITEMS:
+    * Crypto Seed Vaults    : 100% PROTECTED
+    * Neutralized Webhooks  : SINKHOLE READY
+    * Saved Cookies/Creds   : SECURED
+
+=== 1-CLICK INTERACTIVE SYSTEM REMEDIATION ===================================================
+
+ [1] Per-Process Action Menu ([T]erminate / [N]eutralize / [S]kip)
+ [2] Export Incident Summary Report (saved to ~/.abyss/reports/)
+ [3] Toggle Automatic Boot Guard (Auto-scan on Windows Boot) [ENABLED]
+ [4] Exit Scanner
+```
+
+---
+
+## 📁 Repository Structure
+
+```
+ABYSS/
 ├── backend/
-│   ├── main.py              # FastAPI server (lifespan, CORS, status pollers)
-│   ├── static_analysis.py   # Stage 1: PE feature and string extractor (LIEF/pefile)
-│   ├── sandbox_runner.py    # Stage 2: VM controller, AutoLogon, guest runner
-│   ├── guest_sandbox.py     # Guest side: Frida export injection engine (x86/x64)
-│   ├── classifier.py        # Stage 3: ML Engine (XGBoost, RF, PyTorch Autoencoder, SHAP)
-│   ├── deception_layer.py   # Stage 4: Frida faking, Network Sinkholing, watchdog decoys
-│   ├── forensic_logger.py   # Stage 5: Timeline assembler & JSON/TXT report builder
-│   ├── models/              # Saved ML models (xgboost_model.pkl, rf_model.pkl, autoencoder.pt)
-│   ├── mock_data/           # Honeypot decoy files (cookies, credit cards, passwords)
-│   └── results/             # Analysis outputs (features.json, behavior.json, results.json)
+│   ├── main.py               # FastAPI server (lifespan, CORS, status poller)
+│   ├── static_analysis.py    # PE Feature & String Extractor (LIEF & pefile)
+│   ├── sandbox_runner.py     # Dynamic VM/Guest Sandbox Controller
+│   ├── classifier.py         # Hybrid ML Engine (XGBoost, RF, PyTorch Autoencoder, SHAP)
+│   ├── deception_layer.py    # Frida API Hooks, Honeypots, & Network Sinkhole
+│   ├── forensic_logger.py    # Timeline assembler & JSON/TXT report generator
+│   ├── abyss_cli.py          # Cyber Incident Response CLI & Boot Guard Engine
+│   ├── mock_data/            # Honeypot decoy files (fake Discord tokens, seeds, cookies)
+│   └── models/               # Saved EMBER ML models & PyTorch Autoencoder
 ├── frontend/
 │   ├── app/
-│   │   ├── page.tsx         # Drag-and-drop file upload & dynamic progress pipeline
-│   │   └── report/page.tsx  # Interactive glassmorphism threat intelligence dashboard
-│   ├── components/          # UI elements (CircularProgress, FileUpload, ThreatReport)
-│   └── lib/api.ts           # API client (maps real backend response to UI structure)
-└── training/
-    ├── train_model.ipynb    # Google Colab notebook for ML classifier training
-    ├── test_real_behavior.c # Safe custom binary showcasing hooked API actions
-    └── test_suspicious.c    # Safe custom binary showcasing dynamic API resolution
+│   │   ├── page.tsx          # Drag-and-drop upload & dynamic progress pipeline
+│   │   └── report/page.tsx   # Glassmorphic threat report dashboard
+│   ├── components/           # UI elements (CircularProgress, FileUpload, ThreatReport)
+│   └── lib/api.ts            # API client connected to Render live backend
+├── setup.py                  # PyPI package setup for 1-word `abyss` command
+├── abyss.bat                 # Direct Windows batch command launcher
+├── test_grabber_detection.py # Automated test suite for grabber detection & honeypots
+└── test_live_frida_attach.py # Test suite for live Frida PID process attachment
 ```
-<p align="left">
-  <img src="https://img.shields.io/badge/Python-3.10+-3776AB?style=flat-square&logo=python&logoColor=white" />
-  <img src="https://img.shields.io/badge/FastAPI-009688?style=flat-square&logo=fastapi&logoColor=white" />
-  <img src="https://img.shields.io/badge/Next.js-14-000000?style=flat-square&logo=nextdotjs&logoColor=white" />
-  <img src="https://img.shields.io/badge/TypeScript-5.0-3178C6?style=flat-square&logo=typescript&logoColor=white" />
-  <img src="https://img.shields.io/badge/VirtualBox-Sandbox-183A61?style=flat-square&logo=virtualbox&logoColor=white" />
-  <img src="https://img.shields.io/badge/Frida-Hooking-E34F26?style=flat-square&logo=frida&logoColor=white" />
-</p>
 
 ---
 
-## Setup & Execution
+## 🚀 Quick Start Guide
 
-### 1. Configure Host Environment
-Create a `.env` file inside the `backend/` directory:
-```env
-ABYSS_VM_USER=guest_vm_username_here
-ABYSS_VM_PASS=your_guest_vm_password_here
-```
-
-### 2. Launch FastAPI Server
+### 1. Launch Web Application Backend & Frontend
 ```bash
+# Backend (FastAPI)
 cd backend
 pip install -r requirements.txt
 python main.py
-```
-*   Server API docs: `http://localhost:8000/docs`
-*   Server endpoints: `http://localhost:8000/health`
 
-### 3. Deploy Dashboard (Next.js)
-```bash
+# Frontend (Next.js 14)
 cd frontend
 npm install
-npm run build
-npm run start
+npm run dev
 ```
-*   Web app UI: `http://localhost:3000`
+
+### 2. Install ABYSS CLI Locally
+```bash
+# Register global 'abyss' command
+pip install -e .
+
+# Run CLI scanner anytime
+abyss
+```
+
+### 3. Check Neutralized Processes Status
+```bash
+abyss --status
+```
 
 ---
 
-## Sandbox VM Specification
-For dynamic profiling to succeed, configure a VirtualBox VM named `StealthOS-Sandbox`:
-1. **AutoLogon**: Enabled so Windows directly enters desktop on VM startup.
-2. **Frida Server**: Install `frida-server-17.15.3-windows-x86` inside the guest as a system auto-starting service.
-3. **Headless Execution**: Set VM frontend type default to `headless`.
-4. **Baseline Snapshot**: Take a powered-off snapshot named `clean-baseline`.
-
----
-
-
-| Method | Endpoint | Description |
-|---|---|---|
-| `POST` | `/analyze` | Upload EXE/ZIP file and run full 5-stage pipeline |
-| `GET` | `/status/{task_id}` | Poll progress (0-100%) and stage descriptions |
-| `GET` | `/results/{task_id}` | Fetch structured threat report JSON |
-| `GET` | `/results/{task_id}/download` | Download human-readable forensic summary report |
-| `DELETE` | `/results/{task_id}` | Delete task files and clear from cache |
-| `GET` | `/health` | Verify presence of backend scripts and ML models |
+## 📄 License
+Distributed under the **MIT License**. Created by the **ABYSS Cyber Security Team**.
