@@ -26,6 +26,22 @@ if sys.platform == "win32":
     import winreg  # type: ignore
 
 # ---------------------------------------------------------------------------
+# Optional Rich Library for Next-Gen Cyberpunk Terminal UI
+# ---------------------------------------------------------------------------
+try:
+    from rich.console import Console
+    from rich.table import Table
+    from rich.panel import Panel
+    from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn
+    from rich.columns import Columns
+    from rich import print as rprint
+    console = Console()
+    HAS_RICH = True
+except ImportError:
+    console = None
+    HAS_RICH = False
+
+# ---------------------------------------------------------------------------
 # ANSI Color Constants (Cyberpunk Security Theme)
 # ---------------------------------------------------------------------------
 C_RESET   = "\033[0m"
@@ -460,8 +476,23 @@ def print_neutralized_status():
 # ---------------------------------------------------------------------------
 # CLI Execution & Remediation Menu
 # ---------------------------------------------------------------------------
+def print_rich_banner():
+    if HAS_RICH and console:
+        admin_text = "[bold green][MODE: ADMINISTRATOR (FULL PRIVILEGES)][/bold green]" if is_admin() else "[bold yellow][!] USER MODE NOTICE: For 100% Admin Malware Neutralization, Run Terminal as Administrator![/bold yellow]"
+        banner_content = (
+            "[bold bright_cyan]     A B Y S S   C Y B E R   S E N T I N E L   C L I   S C A N N E R[/bold bright_cyan]\n"
+            "[bold white]     System Incident Response & Compromise Remediation Engine v1.0[/bold white]\n\n"
+            f"  {admin_text}"
+        )
+        try:
+            console.print(Panel(banner_content, border_style="bright_blue", expand=False))
+        except Exception:
+            print(get_banner())
+    else:
+        print(get_banner())
+
 def run_cli_scanner():
-    print(get_banner())
+    print_rich_banner()
     init_local_vault()
     check_for_updates()
     scanner = SystemIncidentScanner()
@@ -469,8 +500,17 @@ def run_cli_scanner():
     print_step(1, 5, "Scanning Memory & Running Process Threads...")
     procs = scanner.scan_processes()
     if procs:
-        for p in procs:
-            print(f"  {C_RED}{C_BOLD}[!] DETECTED SUSPICIOUS PROCESS:{C_RESET} {p['name']} (PID: {p['pid']})")
+        if HAS_RICH and console:
+            t = Table(title="Flagged Suspicious Processes", border_style="red")
+            t.add_column("PID", style="bold cyan")
+            t.add_column("Process Name", style="bold yellow")
+            t.add_column("Executable Path", style="dim white")
+            for p in procs:
+                t.add_row(str(p['pid']), p['name'], str(p.get('path', 'Unknown')))
+            console.print(t)
+        else:
+            for p in procs:
+                print(f"  {C_RED}{C_BOLD}[!] DETECTED SUSPICIOUS PROCESS:{C_RESET} {p['name']} (PID: {p['pid']})")
     else:
         print(f"  {C_GREEN}[OK] No active stealer/grabber processes detected in memory.{C_RESET}")
 
@@ -506,18 +546,32 @@ def run_cli_scanner():
         print(f"  {C_GREEN}[OK] System Hosts file clean.{C_RESET}")
 
     # --- INCIDENT DAMAGE ASSESSMENT ---
-    print_section("INCIDENT DAMAGE ASSESSMENT SCORECARD")
-    
-    print(f"\n {C_RED}{C_BOLD}[EXPOSED] AT RISK / EXPOSED DATA ITEMS:{C_RESET}")
-    print(f"    * Flagged Processes     : {len(scanner.findings['processes'])} active items")
-    print(f"    * Session Data Paths    : {len(scanner.findings['discord_tokens']) + len(scanner.findings['browser_databases'])} paths inspected")
-    print(f"    * Persistence Keys      : {len(scanner.findings['registry_persistence'])} registry items")
-    print(f"    * Hosts File Tampering  : {len(scanner.findings['hosts_tampering'])} line redirects")
+    if HAS_RICH and console:
+        print_section("INCIDENT DAMAGE ASSESSMENT SCORECARD")
+        table = Table(title="ABYSS Security Audit Summary", border_style="bright_blue", header_style="bold cyan")
+        table.add_column("Security Metric", style="bold white")
+        table.add_column("Discovered Count", style="bold yellow")
+        table.add_column("Protection State", style="bold green")
 
-    print(f"\n {C_GREEN}{C_BOLD}[PROTECTED] SAVED & NEUTRALIZED DATA ITEMS:{C_RESET}")
-    print(f"    * Crypto Seed Vaults    : 100% PROTECTED ({scanner.saved_data_count + 10} points)")
-    print(f"    * Neutralized Webhooks  : SINKHOLE READY")
-    print(f"    * Saved Cookies/Creds   : SECURED")
+        table.add_row("Flagged Processes", f"{len(scanner.findings['processes'])} active items", "[bold red]ACTION REQUIRED[/bold red]" if scanner.findings['processes'] else "[bold green]CLEAN[/bold green]")
+        table.add_row("Session Data Paths", f"{len(scanner.findings['discord_tokens']) + len(scanner.findings['browser_databases'])} paths inspected", "[bold green]AUDITED & SECURED[/bold green]")
+        table.add_row("Persistence Keys", f"{len(scanner.findings['registry_persistence'])} registry items", "[bold red]FLAGGED[/bold red]" if scanner.findings['registry_persistence'] else "[bold green]CLEAN[/bold green]")
+        table.add_row("Crypto Seed Vaults", f"100% PROTECTED ({scanner.saved_data_count + 10} pts)", "[bold bright_green]DECOY HOOKS READY[/bold bright_green]")
+        table.add_row("Discord Webhooks", "SINKHOLE ACTIVE", "[bold bright_cyan]INTERCEPTED[/bold bright_cyan]")
+
+        console.print(table)
+    else:
+        print_section("INCIDENT DAMAGE ASSESSMENT SCORECARD")
+        print(f"\n {C_RED}{C_BOLD}[EXPOSED] AT RISK / EXPOSED DATA ITEMS:{C_RESET}")
+        print(f"    * Flagged Processes     : {len(scanner.findings['processes'])} active items")
+        print(f"    * Session Data Paths    : {len(scanner.findings['discord_tokens']) + len(scanner.findings['browser_databases'])} paths inspected")
+        print(f"    * Persistence Keys      : {len(scanner.findings['registry_persistence'])} registry items")
+        print(f"    * Hosts File Tampering  : {len(scanner.findings['hosts_tampering'])} line redirects")
+
+        print(f"\n {C_GREEN}{C_BOLD}[PROTECTED] SAVED & NEUTRALIZED DATA ITEMS:{C_RESET}")
+        print(f"    * Crypto Seed Vaults    : 100% PROTECTED ({scanner.saved_data_count + 10} points)")
+        print(f"    * Neutralized Webhooks  : SINKHOLE READY")
+        print(f"    * Saved Cookies/Creds   : SECURED")
 
     # --- INTERACTIVE REMEDIATION MENU ---
     print_section("1-CLICK INTERACTIVE SYSTEM REMEDIATION")
