@@ -19,7 +19,7 @@ if ! command -v python3 &> /dev/null; then
 fi
 
 echo "[1/2] Installing ABYSS CLI executable & threat signatures..."
-python3 -m pip install --upgrade --no-cache-dir git+https://github.com/pintudevv/ABYSS.git
+python3 -m pip install --upgrade abyss-security
 
 echo ""
 echo "=============================================================================="

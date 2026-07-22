@@ -24,26 +24,26 @@
 
 ---
 
-## ⚡ Quick 1-Line Installation (Claude Code Style)
+## ⚡ Quick Installation (PyPI Package)
 
 Anyone can install the **ABYSS Cyber Incident Sentinel CLI** directly in 1 second without downloading or cloning the repository folder.
 
-### 💻 Windows (PowerShell)
+### 📦 Direct Pip Installation (Global Command)
+```bash
+pip install abyss-security
+```
+
+### 💻 1-Line PowerShell Script (Windows)
 ```powershell
 irm https://raw.githubusercontent.com/pintudevv/ABYSS/main/install.ps1 | iex
 ```
 
-### 🐧 Linux / macOS (Bash)
+### 🐧 1-Line Bash Script (Linux / macOS)
 ```bash
 curl -fsSL https://raw.githubusercontent.com/pintudevv/ABYSS/main/install.sh | sh
 ```
 
-### 📦 Direct Pip Installation
-```bash
-pip install git+https://github.com/pintudevv/ABYSS.git
-```
-
-Once installed, simply open any terminal and type:
+Once installed, simply open any terminal window on your PC and type:
 ```bash
 abyss
 ```

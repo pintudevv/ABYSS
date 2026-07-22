@@ -21,7 +21,7 @@ if (-not $pythonCmd) {
 }
 
 Write-Host "[1/2] Installing ABYSS CLI executable & threat signatures..." -ForegroundColor Yellow
-python -m pip install --upgrade --no-cache-dir git+https://github.com/pintudevv/ABYSS.git
+python -m pip install --upgrade abyss-security
 
 if ($LASTEXITCODE -eq 0) {
     Write-Host ""

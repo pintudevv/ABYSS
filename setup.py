@@ -5,9 +5,9 @@ setup(
     version="1.0.0",
     description="ABYSS -- Hybrid ML Malware Detection & Incident Response CLI",
     author="ABYSS Team",
-    packages=find_packages(include=["backend", "backend.*"]),
+    packages=find_packages(),
     package_data={
-        "backend": ["mock_data/*"],
+        "": ["*.json", "*.txt", "*.csv", "*.db"],
     },
     include_package_data=True,
     install_requires=[
