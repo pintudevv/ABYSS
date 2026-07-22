@@ -1,0 +1,11 @@
+include backend/*.py
+recursive-include backend/mock_data *
+include setup.py
+include README.md
+include LICENSE
+
+recursive-exclude frontend *
+recursive-exclude training *
+recursive-exclude .agents *
+recursive-exclude brain *
+recursive-exclude .git *
