@@ -743,6 +743,21 @@ if __name__ == "__main__":
         log_level="info",
     )
 
+from url_analyzer import analyze_url_safety
+
+class URLScanRequest(BaseModel):
+    url: str
+
+@app.post("/url-scan", tags=["Website Safety"])
+async def scan_url_post(payload: URLScanRequest):
+    """Scan a target URL for phishing, scam, and malicious script risk."""
+    return analyze_url_safety(payload.url)
+
+@app.get("/url-scan", tags=["Website Safety"])
+async def scan_url_get(url: str):
+    """Scan a target URL via query string parameter."""
+    return analyze_url_safety(url)
+
 @app.get("/learning/stats", tags=["Learning"])
 async def get_learning_stats():
     """Return live stats on online learning buffer & zero-retention status."""

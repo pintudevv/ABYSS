@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ABYSS Cyber Sentinel</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="container">
+    <!-- Header -->
+    <header class="header">
+      <div class="logo-group">
+        <div class="shield-icon">🛡️</div>
+        <div>
+          <h1 class="title">ABYSS SENTINEL</h1>
+          <p class="subtitle">Real-Time Web Threat Shield</p>
+        </div>
+      </div>
+      <div id="status-badge" class="badge badge-clean">PROTECTED</div>
+    </header>
+
+    <!-- Main Domain Info -->
+    <div class="card domain-card">
+      <div class="domain-label">CURRENT TAB DOMAIN</div>
+      <div id="domain-name" class="domain-text">scanning...</div>
+    </div>
+
+    <!-- Threat Score Gauge -->
+    <div class="card score-card">
+      <div class="score-header">
+        <span>PHISHING & MALWARE RISK</span>
+        <span id="risk-score" class="score-value">0%</span>
+      </div>
+      <div class="progress-bar-bg">
+        <div id="progress-bar-fill" class="progress-bar-fill" style="width: 0%;"></div>
+      </div>
+      <div id="risk-level-tag" class="risk-tag tag-clean">SAFE WEBSITE</div>
+    </div>
+
+    <!-- Threat Details & Reasons -->
+    <div class="card details-card">
+      <div class="detail-row">
+        <span>HTTPS Encryption</span>
+        <span id="ssl-status" class="status-value green">VERIFIED</span>
+      </div>
+      <div class="detail-row">
+        <span>Phishing Signature</span>
+        <span id="phishing-status" class="status-value green">NONE DETECTED</span>
+      </div>
+      
+      <div id="reasons-box" class="reasons-box hidden">
+        <div class="reasons-title">⚠️ DISCOVERED THREAT REASONS:</div>
+        <ul id="reasons-list"></ul>
+      </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="actions">
+      <button id="scan-btn" class="btn btn-primary">⚡ Re-Scan Page Safety</button>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <span>ABYSS Threat Intelligence v1.0</span>
+      <span class="dot">•</span>
+      <span id="api-status">API Connected</span>
+    </footer>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

@@ -208,10 +208,14 @@ class SystemIncidentScanner:
         suspicious_pids = []
         all_active_procs = []
         suspicious_keywords = ["stealer", "grabber", "w4sp", "lumma", "raccoon", "redline", "token_grabber", "keylog", "discord_hook"]
+        
+        t_start = time.time()
+        authenticode_checks = 0
+        total_os_procs = 0
 
         try:
-            # Query Windows Task Manager via PowerShell for full path resolution
-            ps_cmd = 'powershell -NoProfile -Command "Get-Process | Where-Object {$_.Path -ne $null} | Select-Object Id, ProcessName, Path | ConvertTo-Json"'
+            # Query Windows Task Manager via PowerShell for full process & path resolution
+            ps_cmd = 'powershell -NoProfile -Command "Get-Process | Select-Object Id, ProcessName, Path | ConvertTo-Json -Depth 2"'
             output = subprocess.check_output(ps_cmd, shell=True, text=True, errors="replace").strip()
             
             if output:
@@ -221,6 +225,8 @@ class SystemIncidentScanner:
                         proc_data = [proc_data]
                 except Exception:
                     proc_data = []
+
+                total_os_procs = len(proc_data)
 
                 for item in proc_data:
                     pid = item.get("Id")
@@ -236,15 +242,25 @@ class SystemIncidentScanner:
 
                     # Check 1: Known malware signature keyword
                     is_susp_name = any(k in pname_lower for k in suspicious_keywords)
-                    # Check 2: Running from Temp / Downloads / Public
-                    is_susp_dir = any(loc in ppath_lower for loc in ("\\temp\\", "\\tmp\\", "\\public\\", "\\downloads\\"))
+                    # Check 2: Running from Temp / Downloads / Public / AppData
+                    is_susp_dir = any(loc in ppath_lower for loc in ("\\temp\\", "\\tmp\\", "\\public\\", "\\downloads\\", "\\appdata\\local\\temp\\"))
 
-                    if is_susp_name or is_susp_dir:
+                    # Authenticode Verification on non-system or suspicious directory binaries
+                    is_non_system = not (ppath_lower.startswith("c:\\windows\\system32") or ppath_lower.startswith("c:\\windows\\syswow64"))
+                    
+                    is_masquerading = False
+                    if is_susp_dir or is_susp_name or is_non_system:
+                        authenticode_checks += 1
+                        auth_info = check_binary_authenticity(ppath)
+                        if auth_info.get("is_masquerading"):
+                            is_masquerading = True
+
+                    if is_susp_name or is_susp_dir or is_masquerading:
                         suspicious_pids.append({
                             "name": pname,
                             "pid": pid,
                             "path": ppath,
-                            "reason": "Suspicious execution location or malware keyword match"
+                            "reason": "Process Impersonation / Masquerading or Suspicious Location" if is_masquerading else "Suspicious execution location or keyword match"
                         })
                         self.exposed_data_count += 1
                     else:
@@ -253,8 +269,12 @@ class SystemIncidentScanner:
         except Exception:
             pass
 
+        t_elapsed = time.time() - t_start
         self.findings["processes"] = suspicious_pids
         self.findings["all_processes_count"] = len(all_active_procs)
+        self.findings["total_os_processes"] = total_os_procs
+        self.findings["authenticode_checks_count"] = authenticode_checks
+        self.findings["proc_audit_time_sec"] = round(t_elapsed, 3)
         return suspicious_pids
 
     # 2. Discord & Browser Session Files Scan
@@ -499,6 +519,13 @@ def run_cli_scanner():
 
     print_step(1, 5, "Scanning Memory & Running Process Threads...")
     procs = scanner.scan_processes()
+    tot_os = scanner.findings.get("total_os_processes", 0)
+    acc_procs = scanner.findings.get("all_processes_count", 0)
+    auth_checks = scanner.findings.get("authenticode_checks_count", 0)
+    t_sec = scanner.findings.get("proc_audit_time_sec", 0.0)
+
+    print(f"  {C_CYAN}[INFO] Task Manager Audit Summary: {tot_os} total OS processes enumerated ({acc_procs} with accessible paths) in {t_sec:.3f}s. Authenticode checks performed: {auth_checks}.{C_RESET}")
+
     if procs:
         if HAS_RICH and console:
             t = Table(title="Flagged Suspicious Processes", border_style="red")
@@ -649,8 +676,48 @@ def toggle_boot_guard() -> bool:
     except Exception:
         return False
 
+def scan_url_cli(target_url: str):
+    from url_analyzer import analyze_url_safety
+    print_rich_banner()
+    print_section("WEBSITE & URL SAFETY SCANNER")
+    print(f"\n{C_CYAN}[+] Auditing URL: {target_url}{C_RESET}\n")
+    result = analyze_url_safety(target_url)
+    
+    score = result.get("risk_score", 0)
+    level = result.get("risk_level", "CLEAN")
+    threat = result.get("threat_type", "Clean")
+    
+    if HAS_RICH and console:
+        table = Table(title="Website Safety Assessment", border_style="bright_blue")
+        table.add_column("Property", style="bold white")
+        table.add_column("Evaluation Result", style="bold yellow")
+        
+        table.add_row("Target Domain", result.get("domain", ""))
+        table.add_row("HTTPS Encryption", "VERIFIED HTTPS" if result.get("is_https") else "[bold red]UNENCRYPTED HTTP[/bold red]")
+        table.add_row("SSL Validity", "VALID" if result.get("ssl_valid") else "[bold red]INVALID / UNTRUSTED[/bold red]")
+        table.add_row("Phishing Risk Score", f"{score}% ({level})")
+        table.add_row("Threat Classification", f"[bold red]{threat}[/bold red]" if score >= 45 else f"[bold green]{threat}[/bold green]")
+        console.print(table)
+    else:
+        print(f"  * Domain: {result.get('domain')}")
+        print(f"  * Risk Score: {score}% ({level})")
+        print(f"  * Threat Type: {threat}")
+
+    if result.get("threat_reasons"):
+        print(f"\n{C_RED}{C_BOLD}[!] DISCOVERED THREAT REASONS:{C_RESET}")
+        for r in result["threat_reasons"]:
+            print(f"   - {r}")
+    
+    print(f"\n{C_BOLD}Recommendation:{C_RESET} {result.get('recommendation')}\n")
+
 if __name__ == "__main__":
-    if "--status" in sys.argv:
+    if "--url" in sys.argv:
+        idx = sys.argv.index("--url")
+        if idx + 1 < len(sys.argv):
+            scan_url_cli(sys.argv[idx + 1])
+        else:
+            print("Usage: abyss --url <website_link>")
+    elif "--status" in sys.argv:
         print_neutralized_status()
     elif "--boot-scan" in sys.argv:
         print(f"\n{C_CYAN}{C_BOLD}[!] ABYSS Boot Guard: Running Automated Windows Startup Scan...{C_RESET}")
