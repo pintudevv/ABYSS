@@ -252,30 +252,44 @@
       if (!target) return;
 
       const link = target.closest("a");
-      const rowElem = target.closest(".zA") || target.closest("[role='row']") || target.closest(".yX") || target.closest("[email]") || target.closest("[data-hovercard-id]");
+      const rowContainer = target.closest(".zA") || target.closest("[role='row']") || target.closest("tr") || target.closest(".yX") || target.closest("[email]") || target.closest("[data-hovercard-id]") || target.parentElement;
 
       let extractedEmail = "";
 
-      if (rowElem) {
-        extractedEmail = rowElem.getAttribute("email") || rowElem.getAttribute("data-hovercard-id") || "";
+      // Check if target or any child in the row has Gmail email attributes
+      if (rowContainer) {
+        const attrElem = rowContainer.querySelector("[email], [data-hovercard-id]");
+        if (attrElem) {
+          extractedEmail = attrElem.getAttribute("email") || attrElem.getAttribute("data-hovercard-id") || "";
+        }
+      }
+
+      if (!extractedEmail && target.getAttribute) {
+        extractedEmail = target.getAttribute("email") || target.getAttribute("data-hovercard-id") || "";
       }
 
       if (!extractedEmail && link && link.href && link.href.startsWith("mailto:")) {
         extractedEmail = link.href.replace("mailto:", "").split("?")[0];
       }
 
+      if (!extractedEmail && rowContainer) {
+        const mailLink = rowContainer.querySelector("a[href^='mailto:']");
+        if (mailLink && mailLink.href) {
+          extractedEmail = mailLink.href.replace("mailto:", "").split("?")[0];
+        }
+      }
+
       if (!extractedEmail) {
-        // Search text of target AND its parent unopened row container in Gmail / Webmail
-        const textToSearch = [
+        const searchScope = [
           target.value || "",
           target.innerText || "",
           target.textContent || "",
-          rowElem ? rowElem.innerText || "" : "",
-          rowElem ? rowElem.textContent || "" : "",
+          rowContainer ? rowContainer.outerHTML || "" : "",
+          rowContainer ? rowContainer.innerText || "" : "",
           target.parentElement ? target.parentElement.innerText || "" : ""
         ].join(" ");
 
-        const emailMatch = textToSearch.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/i);
+        const emailMatch = searchScope.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/i);
         if (emailMatch) {
           extractedEmail = emailMatch[0];
         }
