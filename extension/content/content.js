@@ -252,12 +252,12 @@
       if (!target) return;
 
       const link = target.closest("a");
-      const emailElem = target.closest("[email]") || target.closest("[data-hovercard-id]") || target.closest(".zA") || target.closest(".yX");
+      const rowElem = target.closest(".zA") || target.closest("[role='row']") || target.closest(".yX") || target.closest("[email]") || target.closest("[data-hovercard-id]");
 
       let extractedEmail = "";
 
-      if (emailElem) {
-        extractedEmail = emailElem.getAttribute("email") || emailElem.getAttribute("data-hovercard-id") || "";
+      if (rowElem) {
+        extractedEmail = rowElem.getAttribute("email") || rowElem.getAttribute("data-hovercard-id") || "";
       }
 
       if (!extractedEmail && link && link.href && link.href.startsWith("mailto:")) {
@@ -265,7 +265,16 @@
       }
 
       if (!extractedEmail) {
-        const textToSearch = (target.value || target.innerText || target.textContent || "").trim();
+        // Search text of target AND its parent unopened row container in Gmail / Webmail
+        const textToSearch = [
+          target.value || "",
+          target.innerText || "",
+          target.textContent || "",
+          rowElem ? rowElem.innerText || "" : "",
+          rowElem ? rowElem.textContent || "" : "",
+          target.parentElement ? target.parentElement.innerText || "" : ""
+        ].join(" ");
+
         const emailMatch = textToSearch.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/i);
         if (emailMatch) {
           extractedEmail = emailMatch[0];
