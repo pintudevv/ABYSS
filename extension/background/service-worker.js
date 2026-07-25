@@ -5,7 +5,7 @@ const FALLBACK_API = "https://abyss-1-d265.onrender.com/url-scan";
 
 // Listen to Tab Updates
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-  if (changeInfo.status === "complete" && tab.url && tab.url.startswith("http")) {
+  if (changeInfo.status === "complete" && tab.url && tab.url.startsWith("http")) {
     checkTabUrl(tabId, tab.url);
   }
 });
