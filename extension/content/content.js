@@ -22,23 +22,8 @@
   const DISPOSABLE_DOMAINS = ["tempmail", "guerrillamail", "10minutemail", "mailinator", "trashmail", "dispostable", "getairmail", "fakeinbox", "throwawaymail", "yopmail"];
 
   // ─── ANTI-COOKIE STORAGE GUARD ───────────────────────────────────────────────
-  try {
-    const guard = document.createElement("script");
-    guard.textContent = `(function(){
-      const sensitive = ["token","discord","roblosecurity","session","auth","metamask","seed","private_key","jwt"];
-      const official = ["discord.com","discordapp.com","roblox.com","google.com","github.com","metamask.io"];
-      const host = location.hostname.toLowerCase();
-      if (!official.some(h => host.includes(h))) {
-        const orig = Storage.prototype.getItem;
-        Storage.prototype.getItem = function(k) {
-          if (k && sensitive.some(s => k.toLowerCase().includes(s))) return null;
-          return orig.apply(this, arguments);
-        };
-      }
-    })();`;
-    (document.head || document.documentElement).appendChild(guard);
-    guard.remove();
-  } catch (e) {}
+  // Note: Content scripts run in an isolated world — no inline script injection needed.
+  // Storage guard is enforced via the background service worker and declarativeNetRequest.
 
   // ─── WEBHOOK EXFILTRATION TRACKER ────────────────────────────────────────────
   try {
