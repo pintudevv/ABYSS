@@ -107,7 +107,12 @@
       .join("");
 
     overlay.innerHTML = `
-      <div style="font-size:64px; margin-bottom:12px; filter:drop-shadow(0 0 20px #ff3366);">🛡️</div>
+      <div style="margin-bottom:12px; filter:drop-shadow(0 0 20px #ff3366);">
+        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 2L3 7V12C3 17.55 6.84 22.74 12 24C17.16 22.74 21 17.55 21 12V7L12 2Z" fill="#1e0914" stroke="#ff3366" stroke-width="1.5"/>
+          <path d="M12 8V13M12 16H12.01" stroke="#ff3366" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+      </div>
       <div style="font-size:12px; font-weight:800; color:#ff3366; letter-spacing:2px; margin-bottom:8px;">ABYSS CYBER SENTINEL — INTERCEPT ACTIVE</div>
       <h1 style="font-size:28px; font-weight:900; margin:0 0 12px 0; color:#ffffff;">ACCESS BLOCKED: PHISHING THREAT DETECTED</h1>
       <p style="font-size:14px; color:#94a3b8; max-width:550px; line-height:1.6; margin-bottom:20px;">
@@ -120,8 +125,9 @@
       </div>
 
       <div style="display:flex; gap:12px; flex-wrap:wrap; justify-content:center;">
-        <button id="abyss-poison-btn" style="background:linear-gradient(135deg, #00d2ff, #0072ff); color:#fff; font-weight:800; font-size:13px; border:none; padding:12px 24px; border-radius:8px; cursor:pointer; box-shadow:0 0 15px rgba(0,210,255,0.4);">
-          ⚡ Neutralize & Poison Attacker
+        <button id="abyss-poison-btn" style="background:linear-gradient(135deg, #00d2ff, #0072ff); color:#fff; font-weight:800; font-size:13px; border:none; padding:12px 24px; border-radius:8px; cursor:pointer; box-shadow:0 0 15px rgba(0,210,255,0.4); display:flex; align-items:center; gap:6px;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+          Neutralize & Poison Attacker
         </button>
         <button id="abyss-bypass-btn" style="background:transparent; color:#94a3b8; font-weight:700; font-size:12px; border:1px solid rgba(255,255,255,0.15); padding:12px 20px; border-radius:8px; cursor:pointer;">
           Proceed Anyway (Unsafe)
@@ -183,14 +189,18 @@
         if (HIGH_RISK_TLDS.some((tld) => targetDomain.endsWith(tld))) isSuspicious = true;
         if (BRAND_KEYWORDS.some((kw) => targetDomain.includes(kw))) isSuspicious = true;
 
+        const iconSvg = isSuspicious 
+          ? `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#ff3366" stroke-width="2" stroke-linecap="round" style="vertical-align:middle; margin-right:4px;"><path d="M12 2L3 7V12C3 17.55 6.84 22.74 12 24C17.16 22.74 21 17.55 21 12V7L12 2Z"/></svg>`
+          : `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#00ff88" stroke-width="2" stroke-linecap="round" style="vertical-align:middle; margin-right:4px;"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>`;
+
         if (isSuspicious) {
           hoverTooltipEl.style.border = "1px solid #ff3366";
           hoverTooltipEl.style.color = "#ff3366";
-          hoverTooltipEl.innerHTML = `🛡️ ABYSS DANGER: Phishing Link Target (${targetDomain})`;
+          hoverTooltipEl.innerHTML = `${iconSvg}ABYSS DANGER: Phishing Link Target (${targetDomain})`;
         } else {
           hoverTooltipEl.style.border = "1px solid #00ff88";
           hoverTooltipEl.style.color = "#00ff88";
-          hoverTooltipEl.innerHTML = `🛡️ ABYSS: Verified Link (${targetDomain})`;
+          hoverTooltipEl.innerHTML = `${iconSvg}ABYSS: Verified Link (${targetDomain})`;
         }
 
         const rect = link.getBoundingClientRect();
@@ -232,7 +242,10 @@
       `;
       document.body.appendChild(alertEl);
     }
-    alertEl.innerHTML = `<span>🛡️</span><span>${message}</span>`;
+    const shieldSvg = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#00d2ff" stroke-width="2" stroke-linecap="round"><path d="M12 2L3 7V12C3 17.55 6.84 22.74 12 24C17.16 22.74 21 17.55 21 12V7L12 2Z"/></svg>`;
+    alertEl.innerHTML = `<span>${shieldSvg}</span><span>${message}</span>`;
+    setTimeout(() => { try { alertEl.remove(); } catch(e){} }, 6000);
+  }
     setTimeout(() => { try { alertEl.remove(); } catch(e){} }, 6000);
   }
 

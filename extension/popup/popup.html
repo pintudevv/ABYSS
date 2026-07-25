@@ -11,7 +11,12 @@
     <!-- Header -->
     <header class="header">
       <div class="logo-group">
-        <div class="shield-icon">🛡️</div>
+        <div class="shield-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 2L3 7V12C3 17.55 6.84 22.74 12 24C17.16 22.74 21 17.55 21 12V7L12 2Z" fill="#0f172a" stroke="#00d2ff" stroke-width="1.5"/>
+            <path d="M12 6L6 9.5V13C6 16.7 8.5 20.2 12 21C15.5 20.2 18 16.7 18 13V9.5L12 6Z" fill="#0072ff"/>
+          </svg>
+        </div>
         <div>
           <h1 class="title">ABYSS SENTINEL</h1>
           <p class="subtitle">Real-Time Web Threat Shield</p>
@@ -50,15 +55,33 @@
       </div>
       
       <div id="reasons-box" class="reasons-box hidden">
-        <div class="reasons-title">⚠️ DISCOVERED THREAT REASONS:</div>
+        <div class="reasons-title" style="display:flex; align-items:center; gap:4px;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ffaa00" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+            <line x1="12" y1="9" x2="12" y2="13"></line>
+            <line x1="12" y1="17" x2="12.01" y2="17"></line>
+          </svg>
+          DISCOVERED THREAT REASONS:
+        </div>
         <ul id="reasons-list"></ul>
       </div>
     </div>
 
     <!-- Action Buttons -->
     <div class="actions" style="display:flex; flex-direction:column; gap:8px;">
-      <button id="poison-btn" class="btn btn-danger">⚡ Neutralize & Poison Attacker</button>
-      <button id="scan-btn" class="btn btn-primary">🔄 Re-Scan Page Safety</button>
+      <button id="poison-btn" class="btn btn-danger" style="display:flex; align-items:center; justify-content:center; gap:6px;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+        </svg>
+        Neutralize & Poison Attacker
+      </button>
+      <button id="scan-btn" class="btn btn-primary" style="display:flex; align-items:center; justify-content:center; gap:6px;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="23 4 23 10 17 10"></polyline>
+          <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+        </svg>
+        Re-Scan Page Safety
+      </button>
     </div>
 
     <!-- Footer -->
