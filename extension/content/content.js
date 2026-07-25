@@ -226,36 +226,52 @@
     };
   }
 
+  let hoverTooltipEl = null;
+
+  function ensureTooltipElement() {
+    if (hoverTooltipEl && document.body && document.body.contains(hoverTooltipEl)) return;
+    
+    hoverTooltipEl = document.getElementById("abyss-hover-tooltip");
+    if (!hoverTooltipEl) {
+      hoverTooltipEl = document.createElement("div");
+      hoverTooltipEl.id = "abyss-hover-tooltip";
+      hoverTooltipEl.style.cssText = `
+        position: fixed;
+        z-index: 2147483647;
+        background: #0f172a;
+        border: 1px solid #00d2ff;
+        border-radius: 8px;
+        padding: 8px 12px;
+        color: #fff;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        font-size: 11px;
+        font-weight: 700;
+        pointer-events: none;
+        display: none;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.7);
+        backdrop-filter: blur(10px);
+      `;
+      if (document.body) {
+        document.body.appendChild(hoverTooltipEl);
+      }
+    }
+  }
+
   function initHoverInspector() {
-    hoverTooltipEl = document.createElement("div");
-    hoverTooltipEl.id = "abyss-hover-tooltip";
-    hoverTooltipEl.style.cssText = `
-      position: fixed;
-      z-index: 2147483647;
-      background: #0f172a;
-      border: 1px solid #00d2ff;
-      border-radius: 8px;
-      padding: 8px 12px;
-      color: #fff;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      font-size: 11px;
-      font-weight: 700;
-      pointer-events: none;
-      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.7);
-      backdrop-filter: blur(10px);
-    `;
-    if (document.body) document.body.appendChild(hoverTooltipEl);
+    ensureTooltipElement();
 
     function handleHoverCheck(e) {
       const target = e.target;
       if (!target) return;
+
+      ensureTooltipElement();
 
       const link = target.closest("a");
       const rowContainer = target.closest(".zA") || target.closest("[role='row']") || target.closest("tr") || target.closest(".yX") || target.closest("[email]") || target.closest("[data-hovercard-id]") || target.parentElement;
 
       let extractedEmail = "";
 
-      // Method A: Query Gmail's email attributes
+      // 1. Query Gmail's email attributes
       if (rowContainer) {
         const attrElem = rowContainer.querySelector("[email], [data-hovercard-id]");
         if (attrElem) {
@@ -271,7 +287,7 @@
         extractedEmail = link.href.replace("mailto:", "").split("?")[0];
       }
 
-      // Method B: Search text content
+      // 2. Search regex text content
       if (!extractedEmail) {
         const searchScope = [
           target.value || "",
@@ -315,12 +331,16 @@
         }
       }
 
-      // Method C: Fallback to Gmail Row Sender Name
+      // 3. Fallback: Gmail / Webmail Row Container Hover
       if (rowContainer) {
         const senderElem = rowContainer.querySelector(".yW span, .zF, .bFj, .yP, td.yX, [email], [data-hovercard-id]") || target;
-        const senderName = (senderElem ? senderElem.innerText || senderElem.textContent || "" : "").trim();
+        let senderName = (senderElem ? senderElem.innerText || senderElem.textContent || "" : "").trim();
 
-        if (senderName && senderName.length >= 2 && senderName.length < 60) {
+        if (!senderName && rowContainer.innerText) {
+          senderName = rowContainer.innerText.split("\n")[0] || "";
+        }
+
+        if (senderName && senderName.length >= 2) {
           const trustedSenders = ["google", "spotify", "vercel", "pypi", "quillbot", "quincy larson", "runpod", "resend", "kimi", "linkedin", "cloudflare", "github", "dane knecht"];
           const lowerName = senderName.toLowerCase();
           const isTrusted = trustedSenders.some((s) => lowerName.includes(s));
@@ -335,7 +355,7 @@
 
           hoverTooltipEl.innerHTML = `
             <div style="display:flex; align-items:center; margin-bottom:2px;">${shieldSvg}<span style="font-weight:800; font-size:11px;">ABYSS SENDER AUDIT (${score}% SAFE)</span></div>
-            <div style="color:#e2e8f0; font-size:11px;">Sender: <strong>${senderName}</strong></div>
+            <div style="color:#e2e8f0; font-size:11px;">Sender: <strong>${senderName.slice(0, 30)}</strong></div>
             <div style="color:#94a3b8; font-size:10px; font-weight:normal; margin-top:2px;">${isTrusted ? "Verified Official Organization" : "Unopened Gmail Inbox Sender"}</div>
           `;
 
@@ -344,13 +364,6 @@
           hoverTooltipEl.style.display = "block";
           return;
         }
-      }      }
-
-      // Check standard Web Links
-      if (!link || !link.href || !link.href.startsWith("http")) {
-        if (hoverTooltipEl) hoverTooltipEl.style.display = "none";
-        return;
-      }
 
       try {
         const targetUrl = new URL(link.href);
