@@ -10,19 +10,19 @@ const LEAK_API = "https://abyss-1-d265.onrender.com/leak-check";
 chrome.runtime.onInstalled.addListener(() => {
   chrome.contextMenus.create({
     id: "abyss-scan-link",
-    title: "🛡️ Scan Link Safety with ABYSS",
+    title: "Scan Link Safety with ABYSS",
     contexts: ["link"]
   });
 
   chrome.contextMenus.create({
     id: "abyss-scan-text",
-    title: "🛡️ Check Email / Token Leak Status",
+    title: "Check Email / Token Leak Status",
     contexts: ["selection"]
   });
 
   chrome.contextMenus.create({
     id: "abyss-poison-page",
-    title: "⚡ Neutralize & Poison Attacker Form",
+    title: "Neutralize & Poison Attacker Form",
     contexts: ["page"]
   });
 });
