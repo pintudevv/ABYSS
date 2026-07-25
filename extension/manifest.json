@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "ABYSS Cyber Sentinel — Phishing & URL Safety",
-  "version": "1.2.0",
-  "description": "Real-time AI threat sentinel, phishing blocker, token storage guard, right-click scanner, and decoy honeypot defender.",
+  "version": "1.2.5",
+  "description": "Real-time AI threat sentinel, phishing blocker, token storage guard, right-click scanner, email verifier, and decoy honeypot defender.",
   "permissions": [
     "storage",
     "activeTab",
