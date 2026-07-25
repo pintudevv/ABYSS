@@ -1,509 +1,343 @@
-// ==============================================================================
-//  A B Y S S   C Y B E R   S E N T I N E L   C O N T E N T   S C R I P T  (v1.2.0)
+// ============================================================================
+//  ABYSS CYBER SENTINEL — Content Script v1.2.6
 //  Features:
-//    1. Right-Click Context Menu Result Modal
-//    2. Anti-Cookie & Session Token Storage Guard
-//    3. Attacker Poisoning & Decoy Injection
-//    4. Full-Page Threat Intercept Overlay
-//    5. Silent Hover Inspector
-//    6. Clipboard Address Swap Guard
-// ==============================================================================
+//    1. Email/Sender Hover Safety Inspector (Gmail, Outlook, any webmail)
+//    2. Silent Link Phishing Inspector
+//    3. Anti-Cookie & Session Token Storage Guard
+//    4. Attacker Poisoning & Decoy Injection
+//    5. Full-Page Threat Intercept Overlay
+//    6. Clipboard Crypto Address Swap Guard
+//    7. Webhook Exfiltration Tracker
+//    8. Right-Click Context Menu Result Modal
+// ============================================================================
 
 (function () {
+  "use strict";
+
   const pageDomain = window.location.hostname.toLowerCase();
-  let hoverTooltipEl = null;
 
-  // ---------------------------------------------------------------------------
-  // FEATURE 2: Anti-Cookie & Session Token Storage Guard
-  // ---------------------------------------------------------------------------
+  // ─── CONSTANTS ───────────────────────────────────────────────────────────────
+  const HIGH_RISK_TLDS = [".xyz", ".top", ".click", ".site", ".fun", ".club", ".zip", ".work", ".tk", ".ml"];
+  const BRAND_KEYWORDS = ["nitro", "gift", "stean", "stearm", "metamask-verify", "phantom-connect", "robux", "dlscord", "paypa1", "microsft", "rbl0x"];
+  const DISPOSABLE_DOMAINS = ["tempmail", "guerrillamail", "10minutemail", "mailinator", "trashmail", "dispostable", "getairmail", "fakeinbox", "throwawaymail", "yopmail"];
+
+  // ─── ANTI-COOKIE STORAGE GUARD ───────────────────────────────────────────────
   try {
-    const SENSITIVE_STORAGE_KEYS = ["token", "discord", "roblosecurity", "session", "auth", "metamask", "seed", "private_key", "jwt"];
-    
-    // Page script injection for Storage getItem trap
-    const script = document.createElement("script");
-    script.textContent = `
-      (function() {
-        const sensitive = ["token", "discord", "roblosecurity", "session", "auth", "metamask", "seed", "private_key", "jwt"];
-        const origGetItem = Storage.prototype.getItem;
-        const currentHost = window.location.hostname.toLowerCase();
-        
-        const isOfficial = ["discord.com", "discordapp.com", "roblox.com", "google.com", "github.com", "metamask.io"].some(h => currentHost.includes(h));
-
-        if (!isOfficial) {
-          Storage.prototype.getItem = function(key) {
-            if (key && sensitive.some(k => key.toLowerCase().includes(k))) {
-              console.warn("[ABYSS TOKEN GUARD] Blocked unauthorized access to storage key:", key);
-              return null;
-            }
-            return origGetItem.apply(this, arguments);
-          };
-        }
-      })();
-    `;
-    (document.head || document.documentElement).appendChild(script);
-    script.remove();
+    const guard = document.createElement("script");
+    guard.textContent = `(function(){
+      const sensitive = ["token","discord","roblosecurity","session","auth","metamask","seed","private_key","jwt"];
+      const official = ["discord.com","discordapp.com","roblox.com","google.com","github.com","metamask.io"];
+      const host = location.hostname.toLowerCase();
+      if (!official.some(h => host.includes(h))) {
+        const orig = Storage.prototype.getItem;
+        Storage.prototype.getItem = function(k) {
+          if (k && sensitive.some(s => k.toLowerCase().includes(s))) return null;
+          return orig.apply(this, arguments);
+        };
+      }
+    })();`;
+    (document.head || document.documentElement).appendChild(guard);
+    guard.remove();
   } catch (e) {}
 
-  // ---------------------------------------------------------------------------
-  // FEATURE 4: Webhook Tracker
-  // ---------------------------------------------------------------------------
+  // ─── WEBHOOK EXFILTRATION TRACKER ────────────────────────────────────────────
   try {
     const origFetch = window.fetch;
     window.fetch = async function (...args) {
       const url = typeof args[0] === "string" ? args[0] : (args[0] && args[0].url) || "";
       if (url.includes("discord.com/api/webhooks") || url.includes("discordapp.com/api/webhooks")) {
         if (!pageDomain.includes("discord.com") && !pageDomain.includes("discordapp.com")) {
-          showFloatingAlert("🛑 CRITICAL EXFILTRATION BLOCKED: This site tried to send stolen data to a Discord Webhook!");
+          showAlert("CRITICAL: Blocked unauthorized Discord Webhook data exfiltration!");
+          return Promise.reject(new Error("ABYSS blocked webhook exfiltration"));
         }
       }
       return origFetch.apply(this, args);
     };
   } catch (e) {}
 
-  // ---------------------------------------------------------------------------
-  // FEATURE 1: 1-Click "Neutralize & Feed Decoy Data" (Attacker Poisoning Engine)
-  // ---------------------------------------------------------------------------
-  function injectHoneypotDecoyData() {
-    const inputs = document.querySelectorAll("input, textarea");
-    let count = 0;
-
-    const fakeSeed = "abandon amount abandon amount abandon amount abandon amount abandon amount abandon art";
-    const fakeToken = "mfa.Vk4fW29302_abyss_decoy_honeypot_token_99218492038102";
-    const fakePass = "Pwned_Abyss_Fake_Password_9921!";
-    const fakeEmail = "decoy_victim_abyss@honeypot.net";
-
-    inputs.forEach((input) => {
-      if (input.type === "hidden" || input.type === "submit" || input.type === "button") return;
-
-      const placeholder = (input.placeholder || "").toLowerCase();
-      const name = (input.name || "").toLowerCase();
-      const id = (input.id || "").toLowerCase();
-      const type = (input.type || "").toLowerCase();
-
-      let valToInject = fakePass;
-      if (placeholder.includes("seed") || placeholder.includes("phrase") || name.includes("seed") || id.includes("phrase")) {
-        valToInject = fakeSeed;
-      } else if (placeholder.includes("token") || name.includes("token") || id.includes("token")) {
-        valToInject = fakeToken;
-      } else if (type === "email" || placeholder.includes("email") || name.includes("email")) {
-        valToInject = fakeEmail;
+  // ─── CLIPBOARD CRYPTO ADDRESS SWAP GUARD ─────────────────────────────────────
+  try {
+    const CRYPTO_REGEX = /^(0x[a-fA-F0-9]{40}|[13][a-km-zA-HJ-NP-Z1-9]{25,34}|[A-Za-z0-9]{32,44})$/;
+    let copiedAddress = "";
+    document.addEventListener("copy", () => {
+      setTimeout(() => {
+        navigator.clipboard.readText().then(text => { if (CRYPTO_REGEX.test(text.trim())) copiedAddress = text.trim(); }).catch(() => {});
+      }, 100);
+    });
+    document.addEventListener("paste", (e) => {
+      const pasted = (e.clipboardData || window.clipboardData).getData("text");
+      if (copiedAddress && CRYPTO_REGEX.test(pasted.trim()) && pasted.trim() !== copiedAddress) {
+        e.preventDefault();
+        showAlert("CLIPBOARD GUARD: Crypto address swap detected! Paste blocked.");
       }
-
-      input.value = valToInject;
-      input.dispatchEvent(new Event("input", { bubbles: true }));
-      input.dispatchEvent(new Event("change", { bubbles: true }));
-      input.style.border = "2px solid #00d2ff";
-      input.style.boxShadow = "0 0 10px #00d2ff";
-      count++;
     });
+  } catch (e) {}
 
-    showFloatingAlert(`⚡ ATTACKER POISONED: Injected synthetic decoy honeypot data into ${count} input fields!`);
+  // ─── EMAIL SAFETY ANALYZER ───────────────────────────────────────────────────
+  function analyzeEmail(email) {
+    if (!email || !email.includes("@")) return null;
+    const [, domain] = email.toLowerCase().split("@");
+    if (!domain) return null;
 
-    const form = document.querySelector("form");
-    if (form) {
-      setTimeout(() => { try { form.submit(); } catch (e) {} }, 500);
-    }
-  }
+    let score = 100;
+    const reasons = [];
 
-  // ---------------------------------------------------------------------------
-  // Full-Page Threat Intercept Overlay
-  // ---------------------------------------------------------------------------
-  function renderFullPageBlockOverlay(data) {
-    if (document.getElementById("abyss-fullpage-overlay")) return;
+    if (DISPOSABLE_DOMAINS.some(d => domain.includes(d))) { score -= 70; reasons.push("Disposable/Temporary Domain"); }
+    if (BRAND_KEYWORDS.some(k => domain.includes(k)))     { score -= 65; reasons.push("Brand Spoof/Typosquat"); }
+    if (HIGH_RISK_TLDS.some(t => domain.endsWith(t)))     { score -= 30; reasons.push("High-Risk Phishing TLD"); }
 
-    const overlay = document.createElement("div");
-    overlay.id = "abyss-fullpage-overlay";
-    overlay.style.cssText = `
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100vw;
-      height: 100vh;
-      z-index: 2147483647;
-      background: radial-gradient(circle at center, #1e0914 0%, #050306 100%);
-      color: #ffffff;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      text-align: center;
-      padding: 24px;
-      box-sizing: border-box;
-    `;
-
-    const reasonsList = (data.threat_reasons || [])
-      .map((r) => `<li style="margin-bottom:6px; display:flex; align-items:center; gap:6px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#ffaa00" stroke-width="2" stroke-linecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>${r}</li>`)
-      .join("");
-
-    overlay.innerHTML = `
-      <div style="margin-bottom:12px; filter:drop-shadow(0 0 20px #ff3366);">
-        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M12 2L3 7V12C3 17.55 6.84 22.74 12 24C17.16 22.74 21 17.55 21 12V7L12 2Z" fill="#1e0914" stroke="#ff3366" stroke-width="1.5"/>
-          <path d="M12 8V13M12 16H12.01" stroke="#ff3366" stroke-width="2" stroke-linecap="round"/>
-        </svg>
-      </div>
-      <div style="font-size:12px; font-weight:800; color:#ff3366; letter-spacing:2px; margin-bottom:8px;">ABYSS CYBER SENTINEL — INTERCEPT ACTIVE</div>
-      <h1 style="font-size:28px; font-weight:900; margin:0 0 12px 0; color:#ffffff;">ACCESS BLOCKED: PHISHING THREAT DETECTED</h1>
-      <p style="font-size:14px; color:#94a3b8; max-width:550px; line-height:1.6; margin-bottom:20px;">
-        ABYSS Threat Intelligence identified <strong>${pageDomain}</strong> as a high-risk phishing website targeting user credentials or Discord/Crypto tokens.
-      </p>
-
-      <div style="background:rgba(255,255,255,0.04); border:1px solid rgba(255,51,102,0.3); border-radius:12px; padding:16px 24px; max-width:500px; text-align:left; margin-bottom:24px;">
-        <div style="font-size:11px; font-weight:800; color:#ffaa00; margin-bottom:8px;">DISCOVERED RISK EVIDENCE:</div>
-        <ul style="margin:0; padding-left:16px; font-size:12px; color:#cbd5e1;">${reasonsList || "<li>High Risk Phishing Signature Match</li>"}</ul>
-      </div>
-
-      <div style="display:flex; gap:12px; flex-wrap:wrap; justify-content:center;">
-        <button id="abyss-poison-btn" style="background:linear-gradient(135deg, #00d2ff, #0072ff); color:#fff; font-weight:800; font-size:13px; border:none; padding:12px 24px; border-radius:8px; cursor:pointer; box-shadow:0 0 15px rgba(0,210,255,0.4); display:flex; align-items:center; gap:6px;">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
-          Neutralize & Poison Attacker
-        </button>
-        <button id="abyss-bypass-btn" style="background:transparent; color:#94a3b8; font-weight:700; font-size:12px; border:1px solid rgba(255,255,255,0.15); padding:12px 20px; border-radius:8px; cursor:pointer;">
-          Proceed Anyway (Unsafe)
-        </button>
-      </div>
-    `;
-
-    document.body.appendChild(overlay);
-
-    document.getElementById("abyss-poison-btn").addEventListener("click", () => {
-      overlay.remove();
-      injectHoneypotDecoyData();
-    });
-
-    document.getElementById("abyss-bypass-btn").addEventListener("click", () => {
-      overlay.remove();
-    });
-  }
-
-  // ---------------------------------------------------------------------------
-  // Silent Link & Email Address Hover Inspector (with Safety % Verifier)
-  // ---------------------------------------------------------------------------
-  const HIGH_RISK_TLDS = [".xyz", ".top", ".click", ".site", ".fun", ".club", ".zip", ".work"];
-  const BRAND_KEYWORDS = ["nitro", "gift", "stean", "stearm", "metamask-verify", "phantom-connect", "robux", "dlscord", "paypa1", "microsft"];
-  const DISPOSABLE_EMAIL_DOMAINS = ["tempmail", "guerrillamail", "10minutemail", "mailinator", "trashmail", "dispostable", "getairmail", "fakeinbox", "throwawaymail"];
-
-  function analyzeEmailSafety(emailStr) {
-    const email = emailStr.trim().toLowerCase();
-    const parts = email.split("@");
-    if (parts.length !== 2) return { isEmail: false };
-
-    const user = parts[0];
-    const domain = parts[1];
-
-    let safetyScore = 100;
-    const riskReasons = [];
-
-    // Check 1: Disposable Tempmail Domain
-    if (DISPOSABLE_EMAIL_DOMAINS.some((d) => domain.includes(d))) {
-      safetyScore -= 70;
-      riskReasons.push("Disposable Temporary Email Domain");
-    }
-
-    // Check 2: Brand Typo-squatting / Spoofing
-    if (BRAND_KEYWORDS.some((kw) => domain.includes(kw))) {
-      safetyScore -= 65;
-      riskReasons.push("Spoofed / Typo-Squatted Brand Domain");
-    }
-
-    // Check 3: High Risk Phishing TLD
-    if (HIGH_RISK_TLDS.some((tld) => domain.endsWith(tld))) {
-      safetyScore -= 30;
-      riskReasons.push("High-Risk Phishing TLD");
-    }
-
-    safetyScore = Math.max(5, Math.min(100, safetyScore));
-    const isSafe = safetyScore >= 70;
-
+    score = Math.max(5, score);
     return {
-      isEmail: true,
-      email,
+      email: email.toLowerCase(),
       domain,
-      safetyScore,
-      isSafe,
-      reason: riskReasons.length > 0 ? riskReasons.join(", ") : "Standard Verified Domain"
+      score,
+      safe: score >= 70,
+      reason: reasons.length ? reasons.join(", ") : "Standard Verified Domain"
     };
   }
 
-  let hoverTooltipEl = null;
+  // ─── TOOLTIP ─────────────────────────────────────────────────────────────────
+  let tooltip = null;
 
-  function ensureTooltipElement() {
-    if (hoverTooltipEl && document.body && document.body.contains(hoverTooltipEl)) return;
-    
-    hoverTooltipEl = document.getElementById("abyss-hover-tooltip");
-    if (!hoverTooltipEl) {
-      hoverTooltipEl = document.createElement("div");
-      hoverTooltipEl.id = "abyss-hover-tooltip";
-      hoverTooltipEl.style.cssText = `
-        position: fixed;
-        z-index: 2147483647;
-        background: #0f172a;
-        border: 1px solid #00d2ff;
-        border-radius: 8px;
-        padding: 8px 12px;
-        color: #fff;
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-        font-size: 11px;
-        font-weight: 700;
-        pointer-events: none;
-        display: none;
-        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.7);
-        backdrop-filter: blur(10px);
-      `;
-      if (document.body) {
-        document.body.appendChild(hoverTooltipEl);
-      }
+  function getTooltip() {
+    if (tooltip && document.body && document.body.contains(tooltip)) return tooltip;
+    tooltip = document.getElementById("__abyss_tip__");
+    if (!tooltip) {
+      tooltip = document.createElement("div");
+      tooltip.id = "__abyss_tip__";
+      tooltip.style.cssText = [
+        "position:fixed",
+        "z-index:2147483647",
+        "background:#0f172a",
+        "border:1px solid #00d2ff",
+        "border-radius:8px",
+        "padding:8px 12px",
+        "color:#fff",
+        "font:700 11px/-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif",
+        "pointer-events:none",
+        "display:none",
+        "box-shadow:0 8px 24px rgba(0,0,0,.7)",
+        "max-width:260px",
+        "line-height:1.5"
+      ].join(";");
     }
+    if (document.body) document.body.appendChild(tooltip);
+    return tooltip;
   }
 
+  function showTip(html, borderColor, textColor, x, y) {
+    const t = getTooltip();
+    t.style.border = `1px solid ${borderColor}`;
+    t.style.color = textColor;
+    t.innerHTML = html;
+    t.style.left = Math.min(window.innerWidth  - 270, Math.max(8, x + 14)) + "px";
+    t.style.top  = Math.min(window.innerHeight - 90,  Math.max(8, y + 18)) + "px";
+    t.style.display = "block";
+  }
+
+  function hideTip() {
+    const t = document.getElementById("__abyss_tip__");
+    if (t) t.style.display = "none";
+  }
+
+  // ─── SVG ICONS ───────────────────────────────────────────────────────────────
+  const SHIELD_GREEN = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#00ff88" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:5px"><path d="M12 2L3 7v5c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7z"/><polyline points="9 12 11 14 15 10"/></svg>`;
+  const SHIELD_RED   = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#ff3366" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:5px"><path d="M12 2L3 7v5c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7z"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>`;
+  const SHIELD_BLUE  = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#00d2ff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:5px"><path d="M12 2L3 7v5c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7z"/><polyline points="9 12 11 14 15 10"/></svg>`;
+
+  function emailTipHTML(r) {
+    const icon  = r.safe ? SHIELD_GREEN : SHIELD_RED;
+    const color = r.safe ? "#00ff88" : "#ff3366";
+    const label = r.safe ? `EMAIL VERIFIED — ${r.score}% SAFE` : `UNSAFE EMAIL — ${r.score}% SAFETY`;
+    return `<div style="display:flex;align-items:center;margin-bottom:3px">${icon}<span style="color:${color};font-size:11px;font-weight:800">${label}</span></div><div style="color:#e2e8f0;font-size:11px">${r.email}</div><div style="color:#94a3b8;font-size:10px;margin-top:2px">${r.reason}</div>`;
+  }
+
+  // ─── HOVER INSPECTOR ─────────────────────────────────────────────────────────
   function initHoverInspector() {
-    ensureTooltipElement();
+    let lastEmail = "";
+    let lastX = 0, lastY = 0;
 
-    function handleHoverCheck(e) {
-      const target = e.target;
-      if (!target) return;
+    document.addEventListener("mousemove", (e) => {
+      lastX = e.clientX; lastY = e.clientY;
+    }, { passive: true });
 
-      ensureTooltipElement();
+    document.addEventListener("mouseover", (e) => {
+      const el = e.target;
+      if (!el || el.nodeType !== 1) return;
 
-      const link = target.closest("a");
-      const rowContainer = target.closest(".zA") || target.closest("[role='row']") || target.closest("tr") || target.closest(".yX") || target.closest("[email]") || target.closest("[data-hovercard-id]") || target.parentElement;
+      // ── 1. Extract email from the hovered element & its row ──────────────────
+      let email = "";
 
-      let extractedEmail = "";
+      // Walk up to find email attribute (Gmail stores it on <span email="...">)
+      let walker = el;
+      for (let i = 0; i < 8 && walker && walker !== document.body; i++) {
+        const attr = walker.getAttribute?.("email") || walker.getAttribute?.("data-hovercard-id") || "";
+        if (attr && attr.includes("@")) { email = attr; break; }
+        walker = walker.parentElement;
+      }
 
-      // 1. Query Gmail's email attributes
-      if (rowContainer) {
-        const attrElem = rowContainer.querySelector("[email], [data-hovercard-id]");
-        if (attrElem) {
-          extractedEmail = attrElem.getAttribute("email") || attrElem.getAttribute("data-hovercard-id") || "";
+      // mailto: link
+      if (!email) {
+        const a = el.closest("a[href^='mailto:']");
+        if (a) email = a.href.replace("mailto:", "").split("?")[0];
+      }
+
+      // Text content of the element only (not its full subtree)
+      if (!email) {
+        const txt = (el.innerText || el.textContent || "").trim();
+        const m = txt.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/);
+        if (m) email = m[0];
+      }
+
+      // ── 2. Show tooltip if we have an email ──────────────────────────────────
+      if (email && email !== lastEmail) {
+        lastEmail = email;
+        const r = analyzeEmail(email);
+        if (r) {
+          showTip(emailTipHTML(r), r.safe ? "#00ff88" : "#ff3366", r.safe ? "#00ff88" : "#ff3366", lastX, lastY);
+          return;
         }
-      }
-
-      if (!extractedEmail && target.getAttribute) {
-        extractedEmail = target.getAttribute("email") || target.getAttribute("data-hovercard-id") || "";
-      }
-
-      if (!extractedEmail && link && link.href && link.href.startsWith("mailto:")) {
-        extractedEmail = link.href.replace("mailto:", "").split("?")[0];
-      }
-
-      // 2. Search regex text content
-      if (!extractedEmail) {
-        const searchScope = [
-          target.value || "",
-          target.innerText || "",
-          target.textContent || "",
-          rowContainer ? rowContainer.innerText || "" : "",
-          target.parentElement ? target.parentElement.innerText || "" : ""
-        ].join(" ");
-
-        const emailMatch = searchScope.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/i);
-        if (emailMatch) {
-          extractedEmail = emailMatch[0];
-        }
-      }
-
-      // Process Extracted Email if Found
-      if (extractedEmail) {
-        const result = analyzeEmailSafety(extractedEmail);
-        if (result.isEmail) {
-          const score = result.safetyScore;
-          const isSafe = result.isSafe;
-
-          const shieldSvg = isSafe
-            ? `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#00ff88" stroke-width="2" stroke-linecap="round" style="vertical-align:middle; margin-right:6px;"><path d="M12 2L3 7V12C3 17.55 6.84 22.74 12 24C17.16 22.74 21 17.55 21 12V7L12 2Z"/><polyline points="9 12 14 15 10"/></svg>`
-            : `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ff3366" stroke-width="2" stroke-linecap="round" style="vertical-align:middle; margin-right:6px;"><path d="M12 2L3 7V12C3 17.55 6.84 22.74 12 24C17.16 22.74 21 17.55 21 12V7L12 2Z"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>`;
-
-          hoverTooltipEl.style.border = isSafe ? "1px solid #00ff88" : "1px solid #ff3366";
-          hoverTooltipEl.style.color = isSafe ? "#00ff88" : "#ff3366";
-
-          const labelText = isSafe ? `ABYSS EMAIL VERIFIED (${score}% SAFE)` : `ABYSS WARNING: UNSAFE EMAIL (${score}% SAFETY SCORE)`;
-          hoverTooltipEl.innerHTML = `
-            <div style="display:flex; align-items:center; margin-bottom:2px;">${shieldSvg}<span style="font-weight:800; font-size:11px;">${labelText}</span></div>
-            <div style="color:#e2e8f0; font-size:11px;">${result.email}</div>
-            <div style="color:#94a3b8; font-size:10px; font-weight:normal; margin-top:2px;">${result.reason}</div>
-          `;
-
-          hoverTooltipEl.style.left = `${Math.min(window.innerWidth - 240, Math.max(10, e.clientX + 12))}px`;
-          hoverTooltipEl.style.top = `${Math.min(window.innerHeight - 80, Math.max(10, e.clientY + 18))}px`;
-          hoverTooltipEl.style.display = "block";
+      } else if (email && email === lastEmail) {
+        // Already showing for this email — just update position
+        const t = document.getElementById("__abyss_tip__");
+        if (t && t.style.display === "block") {
+          t.style.left = Math.min(window.innerWidth  - 270, Math.max(8, lastX + 14)) + "px";
+          t.style.top  = Math.min(window.innerHeight - 90,  Math.max(8, lastY + 18)) + "px";
           return;
         }
       }
 
-      // 3. Fallback: Gmail / Webmail Row Container Hover
-      if (rowContainer) {
-        const senderElem = rowContainer.querySelector(".yW span, .zF, .bFj, .yP, td.yX, [email], [data-hovercard-id]") || target;
-        let senderName = (senderElem ? senderElem.innerText || senderElem.textContent || "" : "").trim();
-
-        if (!senderName && rowContainer.innerText) {
-          senderName = rowContainer.innerText.split("\n")[0] || "";
+      // ── 3. No email — check for phishing link ────────────────────────────────
+      if (!email) {
+        lastEmail = "";
+        const a = el.closest("a[href^='http']");
+        if (a) {
+          try {
+            const domain = new URL(a.href).hostname.toLowerCase();
+            if (domain !== pageDomain) {
+              const phish = HIGH_RISK_TLDS.some(t => domain.endsWith(t)) || BRAND_KEYWORDS.some(k => domain.includes(k));
+              if (phish) {
+                const icon = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#ff3366" stroke-width="2.5" stroke-linecap="round" style="vertical-align:middle;margin-right:4px"><path d="M12 2L3 7v5c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7z"/></svg>`;
+                showTip(`${icon}<span style="font-size:11px;font-weight:800">PHISHING LINK: ${domain}</span>`, "#ff3366", "#ff3366", lastX, lastY);
+                return;
+              }
+            }
+          } catch (_) {}
         }
-
-        if (senderName && senderName.length >= 2) {
-          const trustedSenders = ["google", "spotify", "vercel", "pypi", "quillbot", "quincy larson", "runpod", "resend", "kimi", "linkedin", "cloudflare", "github", "dane knecht"];
-          const lowerName = senderName.toLowerCase();
-          const isTrusted = trustedSenders.some((s) => lowerName.includes(s));
-
-          const score = isTrusted ? 100 : 85;
-          const shieldSvg = isTrusted
-            ? `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#00ff88" stroke-width="2" stroke-linecap="round" style="vertical-align:middle; margin-right:6px;"><path d="M12 2L3 7V12C3 17.55 6.84 22.74 12 24C17.16 22.74 21 17.55 21 12V7L12 2Z"/><polyline points="9 12 14 15 10"/></svg>`
-            : `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#00d2ff" stroke-width="2" stroke-linecap="round" style="vertical-align:middle; margin-right:6px;"><path d="M12 2L3 7V12C3 17.55 6.84 22.74 12 24C17.16 22.74 21 17.55 21 12V7L12 2Z"/><polyline points="9 12 11 14 15 10"/></svg>`;
-
-          hoverTooltipEl.style.border = isTrusted ? "1px solid #00ff88" : "1px solid #00d2ff";
-          hoverTooltipEl.style.color = isTrusted ? "#00ff88" : "#00d2ff";
-
-          hoverTooltipEl.innerHTML = `
-            <div style="display:flex; align-items:center; margin-bottom:2px;">${shieldSvg}<span style="font-weight:800; font-size:11px;">ABYSS SENDER AUDIT (${score}% SAFE)</span></div>
-            <div style="color:#e2e8f0; font-size:11px;">Sender: <strong>${senderName.slice(0, 30)}</strong></div>
-            <div style="color:#94a3b8; font-size:10px; font-weight:normal; margin-top:2px;">${isTrusted ? "Verified Official Organization" : "Unopened Gmail Inbox Sender"}</div>
-          `;
-
-          hoverTooltipEl.style.left = `${Math.min(window.innerWidth - 240, Math.max(10, e.clientX + 12))}px`;
-          hoverTooltipEl.style.top = `${Math.min(window.innerHeight - 80, Math.max(10, e.clientY + 18))}px`;
-          hoverTooltipEl.style.display = "block";
-          return;
-        }
-
-      try {
-        const targetUrl = new URL(link.href);
-        const targetDomain = targetUrl.hostname.toLowerCase();
-        if (targetDomain === pageDomain) return;
-
-        let isSuspicious = false;
-        if (HIGH_RISK_TLDS.some((tld) => targetDomain.endsWith(tld))) isSuspicious = true;
-        if (BRAND_KEYWORDS.some((kw) => targetDomain.includes(kw))) isSuspicious = true;
-
-        if (isSuspicious) {
-          const iconSvg = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#ff3366" stroke-width="2" stroke-linecap="round" style="vertical-align:middle; margin-right:4px;"><path d="M12 2L3 7V12C3 17.55 6.84 22.74 12 24C17.16 22.74 21 17.55 21 12V7L12 2Z"/></svg>`;
-          hoverTooltipEl.style.border = "1px solid #ff3366";
-          hoverTooltipEl.style.color = "#ff3366";
-          hoverTooltipEl.innerHTML = `${iconSvg}ABYSS DANGER: Phishing Link Target (${targetDomain})`;
-
-          hoverTooltipEl.style.left = `${Math.min(window.innerWidth - 240, Math.max(10, e.clientX + 12))}px`;
-          hoverTooltipEl.style.top = `${Math.min(window.innerHeight - 80, Math.max(10, e.clientY + 18))}px`;
-          hoverTooltipEl.style.display = "block";
-        } else {
-          hoverTooltipEl.style.display = "none";
-        }
-      } catch (err) {
-        if (hoverTooltipEl) hoverTooltipEl.style.display = "none";
+        hideTip();
       }
-    }
-
-    document.addEventListener("mousemove", handleHoverCheck, { passive: true });
+    });
 
     document.addEventListener("mouseout", (e) => {
-      if (e.target.closest("a") && hoverTooltipEl) {
-        hoverTooltipEl.style.display = "none";
-      }
+      if (!e.relatedTarget || e.relatedTarget.id === "__abyss_tip__") return;
+      lastEmail = "";
+      hideTip();
     });
   }
 
-  // Floating Alert Banner
-  function showFloatingAlert(message) {
-    let alertEl = document.getElementById("abyss-floating-alert");
-    if (!alertEl) {
-      alertEl = document.createElement("div");
-      alertEl.id = "abyss-floating-alert";
-      alertEl.style.cssText = `
-        position: fixed;
-        bottom: 20px;
-        right: 20px;
-        z-index: 2147483646;
-        background: rgba(15, 23, 42, 0.95);
-        border: 2px solid #00d2ff;
-        border-radius: 10px;
-        padding: 12px 16px;
-        color: #ffffff;
-        font-family: -apple-system, sans-serif;
-        font-size: 12px;
-        box-shadow: 0 10px 30px rgba(0, 210, 255, 0.3);
-        display: flex;
-        align-items: center;
-        gap: 10px;
-      `;
-      document.body.appendChild(alertEl);
-    }
-    const shieldSvg = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#00d2ff" stroke-width="2" stroke-linecap="round"><path d="M12 2L3 7V12C3 17.55 6.84 22.74 12 24C17.16 22.74 21 17.55 21 12V7L12 2Z"/></svg>`;
-    alertEl.innerHTML = `<span>${shieldSvg}</span><span>${message}</span>`;
-    setTimeout(() => { try { alertEl.remove(); } catch(e){} }, 6000);
+  // ─── ATTACKER POISONING ───────────────────────────────────────────────────────
+  function injectDecoy() {
+    const fake = { seed: "abandon amount abandon amount abandon art", token: "mfa.abyss_decoy_honeypot_token_99218492038", pass: "Pwned_Abyss_Fake!999", email: "decoy@honeypot.abyss.net" };
+    let count = 0;
+    document.querySelectorAll("input,textarea").forEach(inp => {
+      if (["hidden","submit","button"].includes(inp.type)) return;
+      const ctx = (inp.placeholder + inp.name + inp.id).toLowerCase();
+      inp.value = ctx.includes("seed") || ctx.includes("phrase") ? fake.seed : ctx.includes("token") ? fake.token : inp.type === "email" || ctx.includes("email") ? fake.email : fake.pass;
+      inp.dispatchEvent(new Event("input", { bubbles: true }));
+      inp.style.border = "2px solid #00d2ff";
+      count++;
+    });
+    showAlert(`ATTACKER POISONED: Injected decoy honeypot data into ${count} fields!`);
+    const form = document.querySelector("form");
+    if (form) setTimeout(() => { try { form.submit(); } catch (_) {} }, 500);
   }
 
-  // Render Right-Click Context Menu Result Modal
-  function showContextResultModal(type, data) {
-    let modal = document.getElementById("abyss-context-modal");
-    if (modal) modal.remove();
+  // ─── FULL-PAGE THREAT OVERLAY ─────────────────────────────────────────────────
+  function renderBlockOverlay(data) {
+    if (document.getElementById("__abyss_overlay__")) return;
+    const reasons = (data.threat_reasons || []).map(r =>
+      `<li style="display:flex;align-items:center;gap:6px;margin-bottom:5px"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#ffaa00" stroke-width="2.5" stroke-linecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>${r}</li>`
+    ).join("");
 
-    modal = document.createElement("div");
-    modal.id = "abyss-context-modal";
-    modal.style.cssText = `
-      position: fixed;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      z-index: 2147483647;
-      background: #0f172a;
-      border: 2px solid #00d2ff;
-      border-radius: 14px;
-      padding: 20px 24px;
-      color: #fff;
-      font-family: -apple-system, sans-serif;
-      max-width: 420px;
-      width: 90%;
-      box-shadow: 0 20px 50px rgba(0,210,255,0.4);
-      backdrop-filter: blur(12px);
-    `;
+    const div = document.createElement("div");
+    div.id = "__abyss_overlay__";
+    div.style.cssText = "position:fixed;inset:0;z-index:2147483647;background:radial-gradient(circle at center,#1e0914,#050306);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif;color:#fff";
+    div.innerHTML = `
+      <div style="margin-bottom:14px;filter:drop-shadow(0 0 20px #ff3366)">
+        <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="#ff3366" stroke-width="1.5" stroke-linecap="round"><path d="M12 2L3 7v5c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7z"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      </div>
+      <div style="font-size:11px;font-weight:800;color:#ff3366;letter-spacing:2px;margin-bottom:8px">ABYSS CYBER SENTINEL — THREAT INTERCEPTED</div>
+      <h1 style="font-size:26px;font-weight:900;margin:0 0 12px;color:#fff">PHISHING SITE BLOCKED</h1>
+      <p style="font-size:13px;color:#94a3b8;max-width:520px;line-height:1.7;margin-bottom:20px">
+        <strong>${pageDomain}</strong> was flagged as a high-risk phishing website targeting your credentials or crypto assets.
+      </p>
+      ${reasons ? `<ul style="background:rgba(255,255,255,.04);border:1px solid rgba(255,51,102,.3);border-radius:10px;padding:14px 20px;max-width:480px;text-align:left;font-size:12px;color:#cbd5e1;list-style:none;margin-bottom:22px">${reasons}</ul>` : ""}
+      <div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center">
+        <button id="__abyss_poison__" style="background:linear-gradient(135deg,#00d2ff,#0072ff);color:#fff;font-weight:800;font-size:13px;border:none;padding:12px 22px;border-radius:8px;cursor:pointer">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="vertical-align:middle;margin-right:5px"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>Neutralize & Poison Attacker
+        </button>
+        <button id="__abyss_bypass__" style="background:transparent;color:#94a3b8;font-weight:700;font-size:12px;border:1px solid rgba(255,255,255,.15);padding:12px 18px;border-radius:8px;cursor:pointer">
+          Proceed Anyway (Unsafe)
+        </button>
+      </div>`;
+    document.body.appendChild(div);
+    document.getElementById("__abyss_poison__").onclick = () => { div.remove(); injectDecoy(); };
+    document.getElementById("__abyss_bypass__").onclick = () => div.remove();
+  }
+
+  // ─── FLOATING ALERT BANNER ────────────────────────────────────────────────────
+  function showAlert(msg) {
+    let el = document.getElementById("__abyss_alert__");
+    if (!el) {
+      el = document.createElement("div");
+      el.id = "__abyss_alert__";
+      el.style.cssText = "position:fixed;bottom:20px;right:20px;z-index:2147483646;background:rgba(15,23,42,.97);border:2px solid #00d2ff;border-radius:10px;padding:12px 16px;color:#fff;font-family:-apple-system,sans-serif;font-size:12px;box-shadow:0 10px 30px rgba(0,210,255,.3);display:flex;align-items:center;gap:10px;max-width:340px";
+      document.body && document.body.appendChild(el);
+    }
+    el.innerHTML = `${SHIELD_BLUE}<span>${msg}</span>`;
+    clearTimeout(el._t);
+    el._t = setTimeout(() => el.remove(), 6000);
+  }
+
+  // ─── CONTEXT MENU RESULT MODAL ────────────────────────────────────────────────
+  function showModal(type, data) {
+    document.getElementById("__abyss_modal__")?.remove();
+    const modal = document.createElement("div");
+    modal.id = "__abyss_modal__";
+    modal.style.cssText = "position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:2147483647;background:#0f172a;border:2px solid #00d2ff;border-radius:14px;padding:20px 24px;color:#fff;font-family:-apple-system,sans-serif;max-width:420px;width:90%;box-shadow:0 20px 50px rgba(0,210,255,.4)";
 
     if (type === "LINK") {
-      const isDanger = data.is_phishing || data.risk_score >= 45;
-      modal.style.borderColor = isDanger ? "#ff3366" : "#00ff88";
-      modal.innerHTML = `
-        <div style="font-size:12px; font-weight:800; color:${isDanger ? '#ff3366' : '#00ff88'}; margin-bottom:6px;">ABYSS LINK SAFETY AUDIT</div>
-        <div style="font-size:14px; font-weight:700; word-break:break-all; margin-bottom:10px;">${data.domain || data.url}</div>
-        <div style="font-size:12px; color:#cbd5e1; margin-bottom:12px;">Risk Rating: <strong>${data.risk_score}% (${data.risk_level})</strong></div>
-        <div style="font-size:12px; color:#94a3b8; margin-bottom:16px;">${data.recommendation}</div>
-        <button id="abyss-close-modal" style="background:#00d2ff; color:#000; font-weight:800; border:none; padding:8px 16px; border-radius:6px; cursor:pointer; width:100%;">Close Audit</button>
-      `;
+      const danger = data.is_phishing || data.risk_score >= 45;
+      modal.style.borderColor = danger ? "#ff3366" : "#00ff88";
+      modal.innerHTML = `<div style="font-size:12px;font-weight:800;color:${danger ? "#ff3366" : "#00ff88"};margin-bottom:6px">ABYSS LINK SAFETY AUDIT</div><div style="font-size:14px;font-weight:700;word-break:break-all;margin-bottom:10px">${data.domain || data.url}</div><div style="font-size:12px;color:#cbd5e1;margin-bottom:12px">Risk: <strong>${data.risk_score}% (${data.risk_level})</strong></div><div style="font-size:12px;color:#94a3b8;margin-bottom:16px">${data.recommendation}</div><button id="__abyss_close__" style="background:#00d2ff;color:#000;font-weight:800;border:none;padding:8px 16px;border-radius:6px;cursor:pointer;width:100%">Close</button>`;
     } else if (type === "LEAK") {
-      const isLeaked = data.is_leaked;
-      modal.style.borderColor = isLeaked ? "#ff3366" : "#00ff88";
-      modal.innerHTML = `
-        <div style="font-size:12px; font-weight:800; color:${isLeaked ? '#ff3366' : '#00ff88'}; margin-bottom:6px;">ABYSS DARK WEB LEAK AUDIT</div>
-        <div style="font-size:14px; font-weight:700; word-break:break-all; margin-bottom:10px;">${data.query_email}</div>
-        <div style="font-size:12px; color:#cbd5e1; margin-bottom:12px;">Status: <strong>${isLeaked ? 'CRITICAL LEAK DETECTED' : 'CLEAN — NO LEAKS FOUND'}</strong></div>
-        <div style="font-size:12px; color:#94a3b8; margin-bottom:16px;">${data.recommendation}</div>
-        <button id="abyss-close-modal" style="background:#00d2ff; color:#000; font-weight:800; border:none; padding:8px 16px; border-radius:6px; cursor:pointer; width:100%;">Close Audit</button>
-      `;
+      modal.style.borderColor = data.is_leaked ? "#ff3366" : "#00ff88";
+      modal.innerHTML = `<div style="font-size:12px;font-weight:800;color:${data.is_leaked ? "#ff3366" : "#00ff88"};margin-bottom:6px">ABYSS DARK WEB LEAK AUDIT</div><div style="font-size:14px;font-weight:700;margin-bottom:10px">${data.query_email}</div><div style="font-size:12px;color:#cbd5e1;margin-bottom:12px">${data.is_leaked ? "CRITICAL LEAK DETECTED" : "CLEAN — NO LEAKS FOUND"}</div><div style="font-size:12px;color:#94a3b8;margin-bottom:16px">${data.recommendation}</div><button id="__abyss_close__" style="background:#00d2ff;color:#000;font-weight:800;border:none;padding:8px 16px;border-radius:6px;cursor:pointer;width:100%">Close</button>`;
     } else {
-      modal.innerHTML = `<div>${data.message || "Audit completed"}</div>`;
+      modal.innerHTML = `<div>${data.message || "Scan complete."}</div><button id="__abyss_close__" style="background:#00d2ff;color:#000;font-weight:800;border:none;padding:8px 16px;border-radius:6px;cursor:pointer;width:100%;margin-top:12px">Close</button>`;
     }
 
     document.body.appendChild(modal);
-    document.getElementById("abyss-close-modal").addEventListener("click", () => modal.remove());
+    document.getElementById("__abyss_close__").onclick = () => modal.remove();
   }
 
-  // Listener for Service Worker Messages
+  // ─── RUNTIME MESSAGES ────────────────────────────────────────────────────────
   if (typeof chrome !== "undefined" && chrome.runtime) {
-    chrome.runtime.sendMessage({ action: "CHECK_URL_SAFETY", url: window.location.href }, (response) => {
-      if (response && (response.is_phishing || response.risk_score >= 70)) {
-        renderFullPageBlockOverlay(response);
-      }
+    chrome.runtime.sendMessage({ action: "CHECK_URL_SAFETY", url: window.location.href }, (resp) => {
+      if (resp && (resp.is_phishing || resp.risk_score >= 70)) renderBlockOverlay(resp);
     });
 
-    chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-      if (request.action === "POISON_DECOY") {
-        injectHoneypotDecoyData();
-        sendResponse({ status: "POISONED" });
-      } else if (request.action === "SHOW_CONTEXT_RESULT") {
-        showContextResultModal(request.type, request.data);
-      }
+    chrome.runtime.onMessage.addListener((req, _sender, sendResp) => {
+      if (req.action === "POISON_DECOY") { injectDecoy(); sendResp({ status: "POISONED" }); }
+      else if (req.action === "SHOW_CONTEXT_RESULT") showModal(req.type, req.data);
     });
   }
 
+  // ─── BOOT ────────────────────────────────────────────────────────────────────
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", initHoverInspector);
   } else {
     initHoverInspector();
   }
+
 })();
