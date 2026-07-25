@@ -189,25 +189,51 @@
         if (HIGH_RISK_TLDS.some((tld) => targetDomain.endsWith(tld))) isSuspicious = true;
         if (BRAND_KEYWORDS.some((kw) => targetDomain.includes(kw))) isSuspicious = true;
 
-        const iconSvg = isSuspicious 
-          ? `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#ff3366" stroke-width="2" stroke-linecap="round" style="vertical-align:middle; margin-right:4px;"><path d="M12 2L3 7V12C3 17.55 6.84 22.74 12 24C17.16 22.74 21 17.55 21 12V7L12 2Z"/></svg>`
-          : `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#00ff88" stroke-width="2" stroke-linecap="round" style="vertical-align:middle; margin-right:4px;"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>`;
-
         if (isSuspicious) {
+          const iconSvg = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#ff3366" stroke-width="2" stroke-linecap="round" style="vertical-align:middle; margin-right:4px;"><path d="M12 2L3 7V12C3 17.55 6.84 22.74 12 24C17.16 22.74 21 17.55 21 12V7L12 2Z"/></svg>`;
           hoverTooltipEl.style.border = "1px solid #ff3366";
           hoverTooltipEl.style.color = "#ff3366";
           hoverTooltipEl.innerHTML = `${iconSvg}ABYSS DANGER: Phishing Link Target (${targetDomain})`;
-        } else {
-          hoverTooltipEl.style.border = "1px solid #00ff88";
-          hoverTooltipEl.style.color = "#00ff88";
-          hoverTooltipEl.innerHTML = `${iconSvg}ABYSS: Verified Link (${targetDomain})`;
-        }
 
-        const rect = link.getBoundingClientRect();
-        hoverTooltipEl.style.left = `${window.scrollX + rect.left}px`;
-        hoverTooltipEl.style.top = `${window.scrollY + rect.bottom + 4}px`;
-        hoverTooltipEl.style.display = "block";
-      } catch (err) {}
+          const rect = link.getBoundingClientRect();
+          hoverTooltipEl.style.left = `${window.scrollX + rect.left}px`;
+          hoverTooltipEl.style.top = `${window.scrollY + rect.bottom + 4}px`;
+          hoverTooltipEl.style.display = "block";
+        } else {
+          hoverTooltipEl.style.display = "none";
+        }
+      } catch (err) {
+        if (hoverTooltipEl) hoverTooltipEl.style.display = "none";
+      }
+    });
+
+    // ---------------------------------------------------------------------------
+    // FEATURE 2: Clipboard Hijack & Crypto Address Swap Guard
+    // ---------------------------------------------------------------------------
+    let lastCopiedCryptoAddress = "";
+    const CRYPTO_REGEX = /^(0x[a-fA-F0-9]{40}|[13][a-km-zA-HJ-NP-Z1-9]{25,34}|bc1[a-z0-9]{39,59}|[1-9A-HJ-NP-Za-km-z]{32,44})$/;
+
+    document.addEventListener("copy", () => {
+      setTimeout(async () => {
+        try {
+          const text = await navigator.clipboard.readText();
+          if (CRYPTO_REGEX.test(text.trim())) {
+            lastCopiedCryptoAddress = text.trim();
+          }
+        } catch (e) {}
+      }, 100);
+    });
+
+    document.addEventListener("paste", (e) => {
+      try {
+        const pastedText = (e.clipboardData || window.clipboardData).getData("text").trim();
+        if (lastCopiedCryptoAddress && CRYPTO_REGEX.test(pastedText)) {
+          if (pastedText !== lastCopiedCryptoAddress) {
+            e.preventDefault();
+            showFloatingAlert(`🛑 ABYSS CLIPBOARD GUARD: Crypto wallet address swap detected! Copied address (${lastCopiedCryptoAddress.slice(0,6)}...) was tampered with by a malicious script!`);
+          }
+        }
+      } catch (e) {}
     });
 
     document.addEventListener("mouseout", (e) => {

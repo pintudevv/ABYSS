@@ -744,9 +744,13 @@ if __name__ == "__main__":
     )
 
 from url_analyzer import analyze_url_safety
+from leak_checker import check_email_leak_status
 
 class URLScanRequest(BaseModel):
     url: str
+
+class LeakCheckRequest(BaseModel):
+    email: str
 
 @app.post("/url-scan", tags=["Website Safety"])
 async def scan_url_post(payload: URLScanRequest):
@@ -757,6 +761,16 @@ async def scan_url_post(payload: URLScanRequest):
 async def scan_url_get(url: str):
     """Scan a target URL via query string parameter."""
     return analyze_url_safety(url)
+
+@app.post("/leak-check", tags=["Dark Web Intelligence"])
+async def leak_check_post(payload: LeakCheckRequest):
+    """Check email address against infostealer log breach intelligence."""
+    return check_email_leak_status(payload.email)
+
+@app.get("/leak-check", tags=["Dark Web Intelligence"])
+async def leak_check_get(email: str):
+    """Check email address via query parameter."""
+    return check_email_leak_status(email)
 
 @app.get("/learning/stats", tags=["Learning"])
 async def get_learning_stats():
