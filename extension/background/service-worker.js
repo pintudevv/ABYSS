@@ -2,6 +2,59 @@
 
 const API_URL = "http://localhost:8000/url-scan";
 const FALLBACK_API = "https://abyss-1-d265.onrender.com/url-scan";
+const LEAK_API = "https://abyss-1-d265.onrender.com/leak-check";
+
+// ---------------------------------------------------------------------------
+// FEATURE 1: Right-Click Context Menu ("Scan with ABYSS")
+// ---------------------------------------------------------------------------
+chrome.runtime.onInstalled.addListener(() => {
+  chrome.contextMenus.create({
+    id: "abyss-scan-link",
+    title: "🛡️ Scan Link Safety with ABYSS",
+    contexts: ["link"]
+  });
+
+  chrome.contextMenus.create({
+    id: "abyss-scan-text",
+    title: "🛡️ Check Email / Token Leak Status",
+    contexts: ["selection"]
+  });
+
+  chrome.contextMenus.create({
+    id: "abyss-poison-page",
+    title: "⚡ Neutralize & Poison Attacker Form",
+    contexts: ["page"]
+  });
+});
+
+chrome.contextMenus.onClicked.addListener(async (info, tab) => {
+  if (!tab || !tab.id) return;
+
+  if (info.menuItemId === "abyss-scan-link" && info.linkUrl) {
+    try {
+      let response;
+      try {
+        response = await fetch(`${API_URL}?url=${encodeURIComponent(info.linkUrl)}`);
+      } catch {
+        response = await fetch(`${FALLBACK_API}?url=${encodeURIComponent(info.linkUrl)}`);
+      }
+      const data = await response.json();
+      chrome.tabs.sendMessage(tab.id, { action: "SHOW_CONTEXT_RESULT", type: "LINK", data });
+    } catch (e) {
+      chrome.tabs.sendMessage(tab.id, { action: "SHOW_CONTEXT_RESULT", type: "ERROR", message: "Failed to query ABYSS URL Analyzer" });
+    }
+  } else if (info.menuItemId === "abyss-scan-text" && info.selectionText) {
+    try {
+      const response = await fetch(`${LEAK_API}?email=${encodeURIComponent(info.selectionText.trim())}`);
+      const data = await response.json();
+      chrome.tabs.sendMessage(tab.id, { action: "SHOW_CONTEXT_RESULT", type: "LEAK", data });
+    } catch (e) {
+      chrome.tabs.sendMessage(tab.id, { action: "SHOW_CONTEXT_RESULT", type: "ERROR", message: "Failed to query Dark Web Leak Database" });
+    }
+  } else if (info.menuItemId === "abyss-poison-page") {
+    chrome.tabs.sendMessage(tab.id, { action: "POISON_DECOY" });
+  }
+});
 
 // Listen to Tab Updates
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {

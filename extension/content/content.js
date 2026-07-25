@@ -1,10 +1,12 @@
 // ==============================================================================
-//  A B Y S S   C Y B E R   S E N T I N E L   C O N T E N T   S C R I P T  (v1.1.0)
+//  A B Y S S   C Y B E R   S E N T I N E L   C O N T E N T   S C R I P T  (v1.2.0)
 //  Features:
-//    1. 1-Click "Neutralize & Feed Decoy Data" (Attacker Poisoning)
-//    2. Full-Page Threat Intercept Overlay (Red Screen Alert)
-//    3. Link Hover Safety Inspector (Pre-Click Warning)
-//    4. Webhook & Exfiltration Endpoint Tracker
+//    1. Right-Click Context Menu Result Modal
+//    2. Anti-Cookie & Session Token Storage Guard
+//    3. Attacker Poisoning & Decoy Injection
+//    4. Full-Page Threat Intercept Overlay
+//    5. Silent Hover Inspector
+//    6. Clipboard Address Swap Guard
 // ==============================================================================
 
 (function () {
@@ -12,7 +14,38 @@
   let hoverTooltipEl = null;
 
   // ---------------------------------------------------------------------------
-  // FEATURE 4: Webhook & Exfiltration Endpoint Tracker (Monkey-patch fetch/XHR)
+  // FEATURE 2: Anti-Cookie & Session Token Storage Guard
+  // ---------------------------------------------------------------------------
+  try {
+    const SENSITIVE_STORAGE_KEYS = ["token", "discord", "roblosecurity", "session", "auth", "metamask", "seed", "private_key", "jwt"];
+    
+    // Page script injection for Storage getItem trap
+    const script = document.createElement("script");
+    script.textContent = `
+      (function() {
+        const sensitive = ["token", "discord", "roblosecurity", "session", "auth", "metamask", "seed", "private_key", "jwt"];
+        const origGetItem = Storage.prototype.getItem;
+        const currentHost = window.location.hostname.toLowerCase();
+        
+        const isOfficial = ["discord.com", "discordapp.com", "roblox.com", "google.com", "github.com", "metamask.io"].some(h => currentHost.includes(h));
+
+        if (!isOfficial) {
+          Storage.prototype.getItem = function(key) {
+            if (key && sensitive.some(k => key.toLowerCase().includes(k))) {
+              console.warn("[ABYSS TOKEN GUARD] Blocked unauthorized access to storage key:", key);
+              return null;
+            }
+            return origGetItem.apply(this, arguments);
+          };
+        }
+      })();
+    `;
+    (document.head || document.documentElement).appendChild(script);
+    script.remove();
+  } catch (e) {}
+
+  // ---------------------------------------------------------------------------
+  // FEATURE 4: Webhook Tracker
   // ---------------------------------------------------------------------------
   try {
     const origFetch = window.fetch;
@@ -66,17 +99,14 @@
 
     showFloatingAlert(`⚡ ATTACKER POISONED: Injected synthetic decoy honeypot data into ${count} input fields!`);
 
-    // Auto submit form if available
     const form = document.querySelector("form");
     if (form) {
-      setTimeout(() => {
-        try { form.submit(); } catch (e) {}
-      }, 500);
+      setTimeout(() => { try { form.submit(); } catch (e) {} }, 500);
     }
   }
 
   // ---------------------------------------------------------------------------
-  // FEATURE 2: Full-Page Threat Intercept Overlay (Red Screen Alert)
+  // Full-Page Threat Intercept Overlay
   // ---------------------------------------------------------------------------
   function renderFullPageBlockOverlay(data) {
     if (document.getElementById("abyss-fullpage-overlay")) return;
@@ -148,7 +178,7 @@
   }
 
   // ---------------------------------------------------------------------------
-  // FEATURE 3: Link Hover Safety Inspector (Pre-Click Tooltip)
+  // Silent Link Hover Inspector
   // ---------------------------------------------------------------------------
   const HIGH_RISK_TLDS = [".xyz", ".top", ".click", ".site", ".fun", ".club", ".zip", ".work"];
   const BRAND_KEYWORDS = ["nitro", "gift", "stean", "stearm", "metamask-verify", "phantom-connect", "robux"];
@@ -176,14 +206,14 @@
     document.addEventListener("mouseover", (e) => {
       const link = e.target.closest("a");
       if (!link || !link.href || !link.href.startsWith("http")) {
-        hoverTooltipEl.style.display = "none";
+        if (hoverTooltipEl) hoverTooltipEl.style.display = "none";
         return;
       }
 
       try {
         const targetUrl = new URL(link.href);
         const targetDomain = targetUrl.hostname.toLowerCase();
-        if (targetDomain === pageDomain) return; // Skip internal links
+        if (targetDomain === pageDomain) return;
 
         let isSuspicious = false;
         if (HIGH_RISK_TLDS.some((tld) => targetDomain.endsWith(tld))) isSuspicious = true;
@@ -205,35 +235,6 @@
       } catch (err) {
         if (hoverTooltipEl) hoverTooltipEl.style.display = "none";
       }
-    });
-
-    // ---------------------------------------------------------------------------
-    // FEATURE 2: Clipboard Hijack & Crypto Address Swap Guard
-    // ---------------------------------------------------------------------------
-    let lastCopiedCryptoAddress = "";
-    const CRYPTO_REGEX = /^(0x[a-fA-F0-9]{40}|[13][a-km-zA-HJ-NP-Z1-9]{25,34}|bc1[a-z0-9]{39,59}|[1-9A-HJ-NP-Za-km-z]{32,44})$/;
-
-    document.addEventListener("copy", () => {
-      setTimeout(async () => {
-        try {
-          const text = await navigator.clipboard.readText();
-          if (CRYPTO_REGEX.test(text.trim())) {
-            lastCopiedCryptoAddress = text.trim();
-          }
-        } catch (e) {}
-      }, 100);
-    });
-
-    document.addEventListener("paste", (e) => {
-      try {
-        const pastedText = (e.clipboardData || window.clipboardData).getData("text").trim();
-        if (lastCopiedCryptoAddress && CRYPTO_REGEX.test(pastedText)) {
-          if (pastedText !== lastCopiedCryptoAddress) {
-            e.preventDefault();
-            showFloatingAlert(`🛑 ABYSS CLIPBOARD GUARD: Crypto wallet address swap detected! Copied address (${lastCopiedCryptoAddress.slice(0,6)}...) was tampered with by a malicious script!`);
-          }
-        }
-      } catch (e) {}
     });
 
     document.addEventListener("mouseout", (e) => {
@@ -272,19 +273,61 @@
     alertEl.innerHTML = `<span>${shieldSvg}</span><span>${message}</span>`;
     setTimeout(() => { try { alertEl.remove(); } catch(e){} }, 6000);
   }
-    setTimeout(() => { try { alertEl.remove(); } catch(e){} }, 6000);
+
+  // Render Right-Click Context Menu Result Modal
+  function showContextResultModal(type, data) {
+    let modal = document.getElementById("abyss-context-modal");
+    if (modal) modal.remove();
+
+    modal = document.createElement("div");
+    modal.id = "abyss-context-modal";
+    modal.style.cssText = `
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 2147483647;
+      background: #0f172a;
+      border: 2px solid #00d2ff;
+      border-radius: 14px;
+      padding: 20px 24px;
+      color: #fff;
+      font-family: -apple-system, sans-serif;
+      max-width: 420px;
+      width: 90%;
+      box-shadow: 0 20px 50px rgba(0,210,255,0.4);
+      backdrop-filter: blur(12px);
+    `;
+
+    if (type === "LINK") {
+      const isDanger = data.is_phishing || data.risk_score >= 45;
+      modal.style.borderColor = isDanger ? "#ff3366" : "#00ff88";
+      modal.innerHTML = `
+        <div style="font-size:12px; font-weight:800; color:${isDanger ? '#ff3366' : '#00ff88'}; margin-bottom:6px;">ABYSS LINK SAFETY AUDIT</div>
+        <div style="font-size:14px; font-weight:700; word-break:break-all; margin-bottom:10px;">${data.domain || data.url}</div>
+        <div style="font-size:12px; color:#cbd5e1; margin-bottom:12px;">Risk Rating: <strong>${data.risk_score}% (${data.risk_level})</strong></div>
+        <div style="font-size:12px; color:#94a3b8; margin-bottom:16px;">${data.recommendation}</div>
+        <button id="abyss-close-modal" style="background:#00d2ff; color:#000; font-weight:800; border:none; padding:8px 16px; border-radius:6px; cursor:pointer; width:100%;">Close Audit</button>
+      `;
+    } else if (type === "LEAK") {
+      const isLeaked = data.is_leaked;
+      modal.style.borderColor = isLeaked ? "#ff3366" : "#00ff88";
+      modal.innerHTML = `
+        <div style="font-size:12px; font-weight:800; color:${isLeaked ? '#ff3366' : '#00ff88'}; margin-bottom:6px;">ABYSS DARK WEB LEAK AUDIT</div>
+        <div style="font-size:14px; font-weight:700; word-break:break-all; margin-bottom:10px;">${data.query_email}</div>
+        <div style="font-size:12px; color:#cbd5e1; margin-bottom:12px;">Status: <strong>${isLeaked ? 'CRITICAL LEAK DETECTED' : 'CLEAN — NO LEAKS FOUND'}</strong></div>
+        <div style="font-size:12px; color:#94a3b8; margin-bottom:16px;">${data.recommendation}</div>
+        <button id="abyss-close-modal" style="background:#00d2ff; color:#000; font-weight:800; border:none; padding:8px 16px; border-radius:6px; cursor:pointer; width:100%;">Close Audit</button>
+      `;
+    } else {
+      modal.innerHTML = `<div>${data.message || "Audit completed"}</div>`;
+    }
+
+    document.body.appendChild(modal);
+    document.getElementById("abyss-close-modal").addEventListener("click", () => modal.remove());
   }
 
-  // Init link inspector after page load
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", initHoverInspector);
-  } else {
-    initHoverInspector();
-  }
-
-  // ---------------------------------------------------------------------------
-  // Check URL Risk with Service Worker / API
-  // ---------------------------------------------------------------------------
+  // Listener for Service Worker Messages
   if (typeof chrome !== "undefined" && chrome.runtime) {
     chrome.runtime.sendMessage({ action: "CHECK_URL_SAFETY", url: window.location.href }, (response) => {
       if (response && (response.is_phishing || response.risk_score >= 70)) {
@@ -296,7 +339,15 @@
       if (request.action === "POISON_DECOY") {
         injectHoneypotDecoyData();
         sendResponse({ status: "POISONED" });
+      } else if (request.action === "SHOW_CONTEXT_RESULT") {
+        showContextResultModal(request.type, request.data);
       }
     });
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initHoverInspector);
+  } else {
+    initHoverInspector();
   }
 })();
