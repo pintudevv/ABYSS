@@ -230,8 +230,8 @@
     hoverTooltipEl = document.createElement("div");
     hoverTooltipEl.id = "abyss-hover-tooltip";
     hoverTooltipEl.style.cssText = `
-      position: absolute;
-      z-index: 2147483646;
+      position: fixed;
+      z-index: 2147483647;
       background: #0f172a;
       border: 1px solid #00d2ff;
       border-radius: 8px;
@@ -242,17 +242,17 @@
       font-weight: 700;
       pointer-events: none;
       display: none;
-      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.6);
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.7);
       backdrop-filter: blur(10px);
     `;
     document.body.appendChild(hoverTooltipEl);
 
-    document.addEventListener("mouseover", (e) => {
+    function handleHoverCheck(e) {
       const target = e.target;
       if (!target) return;
 
       const link = target.closest("a");
-      const emailElem = target.closest("[email]") || target.closest("[data-hovercard-id]");
+      const emailElem = target.closest("[email]") || target.closest("[data-hovercard-id]") || target.closest(".zA") || target.closest(".yX");
 
       let extractedEmail = "";
 
@@ -265,9 +265,9 @@
       }
 
       if (!extractedEmail) {
-        const textToSearch = target.value || target.innerText || target.textContent || "";
+        const textToSearch = (target.value || target.innerText || target.textContent || "").trim();
         const emailMatch = textToSearch.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/i);
-        if (emailMatch && textToSearch.length < 300) {
+        if (emailMatch) {
           extractedEmail = emailMatch[0];
         }
       }
@@ -292,15 +292,14 @@
             <div style="color:#94a3b8; font-size:10px; font-weight:normal; margin-top:2px;">${result.reason}</div>
           `;
 
-          const rect = target.getBoundingClientRect();
-          hoverTooltipEl.style.left = `${Math.max(10, window.scrollX + rect.left)}px`;
-          hoverTooltipEl.style.top = `${window.scrollY + rect.bottom + 6}px`;
+          hoverTooltipEl.style.left = `${Math.min(window.innerWidth - 240, Math.max(10, e.clientX + 12))}px`;
+          hoverTooltipEl.style.top = `${Math.min(window.innerHeight - 80, Math.max(10, e.clientY + 18))}px`;
           hoverTooltipEl.style.display = "block";
           return;
         }
       }
 
-      // Check standard Web Links (silent on safe links, red warning on phishing links)
+      // Check standard Web Links
       if (!link || !link.href || !link.href.startsWith("http")) {
         if (hoverTooltipEl) hoverTooltipEl.style.display = "none";
         return;
@@ -321,9 +320,8 @@
           hoverTooltipEl.style.color = "#ff3366";
           hoverTooltipEl.innerHTML = `${iconSvg}ABYSS DANGER: Phishing Link Target (${targetDomain})`;
 
-          const rect = link.getBoundingClientRect();
-          hoverTooltipEl.style.left = `${window.scrollX + rect.left}px`;
-          hoverTooltipEl.style.top = `${window.scrollY + rect.bottom + 4}px`;
+          hoverTooltipEl.style.left = `${Math.min(window.innerWidth - 240, Math.max(10, e.clientX + 12))}px`;
+          hoverTooltipEl.style.top = `${Math.min(window.innerHeight - 80, Math.max(10, e.clientY + 18))}px`;
           hoverTooltipEl.style.display = "block";
         } else {
           hoverTooltipEl.style.display = "none";
@@ -331,7 +329,9 @@
       } catch (err) {
         if (hoverTooltipEl) hoverTooltipEl.style.display = "none";
       }
-    });
+    }
+
+    document.addEventListener("mousemove", handleHoverCheck, { passive: true });
 
     document.addEventListener("mouseout", (e) => {
       if (e.target.closest("a") && hoverTooltipEl) {
