@@ -247,18 +247,16 @@
     `;
     document.body.appendChild(hoverTooltipEl);
 
-    document.addEventListener("mouseover", (e) => {
-      const target = e.target;
-      const link = target.closest("a");
-      const text = (target.textContent || "").trim();
+      const rawText = (target.value || target.innerText || target.textContent || "").trim();
+      const hrefText = (link && link.href) ? link.href : "";
+      
+      const emailRegex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/i;
+      const hrefMatch = hrefText.match(/mailto:([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/i);
+      const textMatch = rawText.match(emailRegex);
 
-      // Check if target is a mailto: link or text matching an email pattern
-      const isMailLink = link && link.href && link.href.startsWith("mailto:");
-      const emailMatch = text.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/);
-
-      if (isMailLink || (emailMatch && text.length < 60)) {
-        const rawEmail = isMailLink ? link.href.replace("mailto:", "").split("?")[0] : emailMatch[0];
-        const result = analyzeEmailSafety(rawEmail);
+      if (hrefMatch || textMatch) {
+        const foundEmail = hrefMatch ? hrefMatch[1] : textMatch[0];
+        const result = analyzeEmailSafety(foundEmail);
 
         if (result.isEmail) {
           const score = result.safetyScore;
