@@ -24,12 +24,26 @@ Write-Host "[1/2] Installing ABYSS CLI executable & threat signatures..." -Foreg
 python -m pip install --upgrade abyss-security
 
 if ($LASTEXITCODE -eq 0) {
+    Write-Host "[2/2] Verifying Python Scripts PATH configuration..." -ForegroundColor Yellow
+    try {
+        $scriptsDir = python -c "import sysconfig; print(sysconfig.get_path('scripts'))"
+        if ($scriptsDir -and (Test-Path $scriptsDir)) {
+            $userPath = [Environment]::GetEnvironmentVariable("Path", "User")
+            if ($userPath -notlike "*$scriptsDir*") {
+                [Environment]::SetEnvironmentVariable("Path", "$userPath;$scriptsDir", "User")
+                $env:Path += ";$scriptsDir"
+                Write-Host "[+] Automatically added Python Scripts ($scriptsDir) to User PATH." -ForegroundColor Green
+            }
+        }
+    } catch {}
+
     Write-Host ""
     Write-Host "==============================================================================" -ForegroundColor Green
     Write-Host " [OK] SUCCESS: ABYSS Cyber Incident Sentinel is installed!" -ForegroundColor Green
     Write-Host "==============================================================================" -ForegroundColor Green
     Write-Host ""
-    Write-Host "  Type 'abyss' in any terminal window to launch the security scanner." -ForegroundColor Cyan
+    Write-Host "  Type 'abyss' in any new terminal window to launch the security scanner." -ForegroundColor Cyan
+    Write-Host "  (If 'abyss' is not recognized, restart terminal or run: python -m abyss)" -ForegroundColor Yellow
     Write-Host ""
 } else {
     Write-Host "[!] Installation failed. Please check your internet connection or git/python setup." -ForegroundColor Red
