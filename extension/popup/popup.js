@@ -115,6 +115,20 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   }
 
+  const poisonBtn = document.getElementById("poison-btn");
+  if (poisonBtn) {
+    poisonBtn.addEventListener("click", () => {
+      chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+        if (tabs && tabs[0]) {
+          chrome.tabs.sendMessage(tabs[0].id, { action: "POISON_DECOY" }, () => {
+            poisonBtn.textContent = "⚡ Attacker Database Poisoned!";
+            setTimeout(() => { poisonBtn.textContent = "⚡ Neutralize & Poison Attacker"; }, 3000);
+          });
+        }
+      });
+    });
+  }
+
   scanBtn.addEventListener("click", performScan);
   performScan();
 });

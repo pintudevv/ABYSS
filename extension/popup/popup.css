@@ -207,6 +207,17 @@ body {
   transform: translateY(-1px);
 }
 
+.btn-danger {
+  background: linear-gradient(135deg, #ff3366, #ff0044);
+  color: #fff;
+  box-shadow: 0 0 10px rgba(255, 51, 102, 0.3);
+}
+
+.btn-danger:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+
 .footer {
   display: flex;
   justify-content: center;
