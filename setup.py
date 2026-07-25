@@ -2,10 +2,11 @@ from setuptools import setup, find_packages
 
 setup(
     name="abyss-security",
-    version="1.0.0",
+    version="1.0.1",
     description="ABYSS -- Hybrid ML Malware Detection & Incident Response CLI",
     author="ABYSS Team",
     packages=find_packages(),
+    py_modules=["abyss"],
     package_data={
         "": ["*.json", "*.txt", "*.csv", "*.db"],
     },
@@ -15,7 +16,7 @@ setup(
     ],
     entry_points={
         "console_scripts": [
-            "abyss=backend.abyss_cli:run_cli_scanner",
+            "abyss=abyss:main",
         ],
     },
     python_requires=">=3.8",
