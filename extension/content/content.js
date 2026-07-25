@@ -247,28 +247,44 @@
     `;
     document.body.appendChild(hoverTooltipEl);
 
-      const rawText = (target.value || target.innerText || target.textContent || "").trim();
-      const hrefText = (link && link.href) ? link.href : "";
-      
-      const emailRegex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/i;
-      const hrefMatch = hrefText.match(/mailto:([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/i);
-      const textMatch = rawText.match(emailRegex);
+    document.addEventListener("mouseover", (e) => {
+      const target = e.target;
+      if (!target) return;
 
-      if (hrefMatch || textMatch) {
-        const foundEmail = hrefMatch ? hrefMatch[1] : textMatch[0];
-        const result = analyzeEmailSafety(foundEmail);
+      const link = target.closest("a");
+      const emailElem = target.closest("[email]") || target.closest("[data-hovercard-id]");
 
+      let extractedEmail = "";
+
+      if (emailElem) {
+        extractedEmail = emailElem.getAttribute("email") || emailElem.getAttribute("data-hovercard-id") || "";
+      }
+
+      if (!extractedEmail && link && link.href && link.href.startsWith("mailto:")) {
+        extractedEmail = link.href.replace("mailto:", "").split("?")[0];
+      }
+
+      if (!extractedEmail) {
+        const textToSearch = target.value || target.innerText || target.textContent || "";
+        const emailMatch = textToSearch.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/i);
+        if (emailMatch && textToSearch.length < 300) {
+          extractedEmail = emailMatch[0];
+        }
+      }
+
+      if (extractedEmail) {
+        const result = analyzeEmailSafety(extractedEmail);
         if (result.isEmail) {
           const score = result.safetyScore;
           const isSafe = result.isSafe;
 
           const shieldSvg = isSafe
-            ? `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#00ff88" stroke-width="2" stroke-linecap="round" style="vertical-align:middle; margin-right:6px;"><path d="M12 2L3 7V12C3 17.55 6.84 22.74 12 24C17.16 22.74 21 17.55 21 12V7L12 2Z"/><polyline points="9 12 11 14 15 10"/></svg>`
+            ? `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#00ff88" stroke-width="2" stroke-linecap="round" style="vertical-align:middle; margin-right:6px;"><path d="M12 2L3 7V12C3 17.55 6.84 22.74 12 24C17.16 22.74 21 17.55 21 12V7L12 2Z"/><polyline points="9 12 14 15 10"/></svg>`
             : `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ff3366" stroke-width="2" stroke-linecap="round" style="vertical-align:middle; margin-right:6px;"><path d="M12 2L3 7V12C3 17.55 6.84 22.74 12 24C17.16 22.74 21 17.55 21 12V7L12 2Z"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>`;
 
           hoverTooltipEl.style.border = isSafe ? "1px solid #00ff88" : "1px solid #ff3366";
           hoverTooltipEl.style.color = isSafe ? "#00ff88" : "#ff3366";
-          
+
           const labelText = isSafe ? `ABYSS EMAIL VERIFIED (${score}% SAFE)` : `ABYSS WARNING: UNSAFE EMAIL (${score}% SAFETY SCORE)`;
           hoverTooltipEl.innerHTML = `
             <div style="display:flex; align-items:center; margin-bottom:2px;">${shieldSvg}<span style="font-weight:800; font-size:11px;">${labelText}</span></div>
@@ -276,8 +292,8 @@
             <div style="color:#94a3b8; font-size:10px; font-weight:normal; margin-top:2px;">${result.reason}</div>
           `;
 
-          const rect = (link || target).getBoundingClientRect();
-          hoverTooltipEl.style.left = `${window.scrollX + rect.left}px`;
+          const rect = target.getBoundingClientRect();
+          hoverTooltipEl.style.left = `${Math.max(10, window.scrollX + rect.left)}px`;
           hoverTooltipEl.style.top = `${window.scrollY + rect.bottom + 6}px`;
           hoverTooltipEl.style.display = "block";
           return;
