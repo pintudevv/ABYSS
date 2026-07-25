@@ -178,10 +178,53 @@
   }
 
   // ---------------------------------------------------------------------------
-  // Silent Link Hover Inspector
+  // Silent Link & Email Address Hover Inspector (with Safety % Verifier)
   // ---------------------------------------------------------------------------
   const HIGH_RISK_TLDS = [".xyz", ".top", ".click", ".site", ".fun", ".club", ".zip", ".work"];
-  const BRAND_KEYWORDS = ["nitro", "gift", "stean", "stearm", "metamask-verify", "phantom-connect", "robux"];
+  const BRAND_KEYWORDS = ["nitro", "gift", "stean", "stearm", "metamask-verify", "phantom-connect", "robux", "dlscord", "paypa1", "microsft"];
+  const DISPOSABLE_EMAIL_DOMAINS = ["tempmail", "guerrillamail", "10minutemail", "mailinator", "trashmail", "dispostable", "getairmail", "fakeinbox", "throwawaymail"];
+
+  function analyzeEmailSafety(emailStr) {
+    const email = emailStr.trim().toLowerCase();
+    const parts = email.split("@");
+    if (parts.length !== 2) return { isEmail: false };
+
+    const user = parts[0];
+    const domain = parts[1];
+
+    let safetyScore = 100;
+    const riskReasons = [];
+
+    // Check 1: Disposable Tempmail Domain
+    if (DISPOSABLE_EMAIL_DOMAINS.some((d) => domain.includes(d))) {
+      safetyScore -= 70;
+      riskReasons.push("Disposable Temporary Email Domain");
+    }
+
+    // Check 2: Brand Typo-squatting / Spoofing
+    if (BRAND_KEYWORDS.some((kw) => domain.includes(kw))) {
+      safetyScore -= 65;
+      riskReasons.push("Spoofed / Typo-Squatted Brand Domain");
+    }
+
+    // Check 3: High Risk Phishing TLD
+    if (HIGH_RISK_TLDS.some((tld) => domain.endsWith(tld))) {
+      safetyScore -= 30;
+      riskReasons.push("High-Risk Phishing TLD");
+    }
+
+    safetyScore = Math.max(5, Math.min(100, safetyScore));
+    const isSafe = safetyScore >= 70;
+
+    return {
+      isEmail: true,
+      email,
+      domain,
+      safetyScore,
+      isSafe,
+      reason: riskReasons.length > 0 ? riskReasons.join(", ") : "Standard Verified Domain"
+    };
+  }
 
   function initHoverInspector() {
     hoverTooltipEl = document.createElement("div");
@@ -191,20 +234,59 @@
       z-index: 2147483646;
       background: #0f172a;
       border: 1px solid #00d2ff;
-      border-radius: 6px;
-      padding: 6px 10px;
+      border-radius: 8px;
+      padding: 8px 12px;
       color: #fff;
-      font-family: -apple-system, sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       font-size: 11px;
       font-weight: 700;
       pointer-events: none;
       display: none;
-      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(10px);
     `;
     document.body.appendChild(hoverTooltipEl);
 
     document.addEventListener("mouseover", (e) => {
-      const link = e.target.closest("a");
+      const target = e.target;
+      const link = target.closest("a");
+      const text = (target.textContent || "").trim();
+
+      // Check if target is a mailto: link or text matching an email pattern
+      const isMailLink = link && link.href && link.href.startsWith("mailto:");
+      const emailMatch = text.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/);
+
+      if (isMailLink || (emailMatch && text.length < 60)) {
+        const rawEmail = isMailLink ? link.href.replace("mailto:", "").split("?")[0] : emailMatch[0];
+        const result = analyzeEmailSafety(rawEmail);
+
+        if (result.isEmail) {
+          const score = result.safetyScore;
+          const isSafe = result.isSafe;
+
+          const shieldSvg = isSafe
+            ? `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#00ff88" stroke-width="2" stroke-linecap="round" style="vertical-align:middle; margin-right:6px;"><path d="M12 2L3 7V12C3 17.55 6.84 22.74 12 24C17.16 22.74 21 17.55 21 12V7L12 2Z"/><polyline points="9 12 11 14 15 10"/></svg>`
+            : `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ff3366" stroke-width="2" stroke-linecap="round" style="vertical-align:middle; margin-right:6px;"><path d="M12 2L3 7V12C3 17.55 6.84 22.74 12 24C17.16 22.74 21 17.55 21 12V7L12 2Z"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>`;
+
+          hoverTooltipEl.style.border = isSafe ? "1px solid #00ff88" : "1px solid #ff3366";
+          hoverTooltipEl.style.color = isSafe ? "#00ff88" : "#ff3366";
+          
+          const labelText = isSafe ? `ABYSS EMAIL VERIFIED (${score}% SAFE)` : `ABYSS WARNING: UNSAFE EMAIL (${score}% SAFETY SCORE)`;
+          hoverTooltipEl.innerHTML = `
+            <div style="display:flex; align-items:center; margin-bottom:2px;">${shieldSvg}<span style="font-weight:800; font-size:11px;">${labelText}</span></div>
+            <div style="color:#e2e8f0; font-size:11px;">${result.email}</div>
+            <div style="color:#94a3b8; font-size:10px; font-weight:normal; margin-top:2px;">${result.reason}</div>
+          `;
+
+          const rect = (link || target).getBoundingClientRect();
+          hoverTooltipEl.style.left = `${window.scrollX + rect.left}px`;
+          hoverTooltipEl.style.top = `${window.scrollY + rect.bottom + 6}px`;
+          hoverTooltipEl.style.display = "block";
+          return;
+        }
+      }
+
+      // Check standard Web Links (silent on safe links, red warning on phishing links)
       if (!link || !link.href || !link.href.startsWith("http")) {
         if (hoverTooltipEl) hoverTooltipEl.style.display = "none";
         return;
