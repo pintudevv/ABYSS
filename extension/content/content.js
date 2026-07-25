@@ -241,11 +241,10 @@
       font-size: 11px;
       font-weight: 700;
       pointer-events: none;
-      display: none;
       box-shadow: 0 10px 25px rgba(0, 0, 0, 0.7);
       backdrop-filter: blur(10px);
     `;
-    document.body.appendChild(hoverTooltipEl);
+    if (document.body) document.body.appendChild(hoverTooltipEl);
 
     function handleHoverCheck(e) {
       const target = e.target;
@@ -256,7 +255,7 @@
 
       let extractedEmail = "";
 
-      // Check if target or any child in the row has Gmail email attributes
+      // Method A: Query Gmail's email attributes
       if (rowContainer) {
         const attrElem = rowContainer.querySelector("[email], [data-hovercard-id]");
         if (attrElem) {
@@ -272,19 +271,12 @@
         extractedEmail = link.href.replace("mailto:", "").split("?")[0];
       }
 
-      if (!extractedEmail && rowContainer) {
-        const mailLink = rowContainer.querySelector("a[href^='mailto:']");
-        if (mailLink && mailLink.href) {
-          extractedEmail = mailLink.href.replace("mailto:", "").split("?")[0];
-        }
-      }
-
+      // Method B: Search text content
       if (!extractedEmail) {
         const searchScope = [
           target.value || "",
           target.innerText || "",
           target.textContent || "",
-          rowContainer ? rowContainer.outerHTML || "" : "",
           rowContainer ? rowContainer.innerText || "" : "",
           target.parentElement ? target.parentElement.innerText || "" : ""
         ].join(" ");
@@ -293,7 +285,10 @@
         if (emailMatch) {
           extractedEmail = emailMatch[0];
         }
-        if (extractedEmail) {
+      }
+
+      // Process Extracted Email if Found
+      if (extractedEmail) {
         const result = analyzeEmailSafety(extractedEmail);
         if (result.isEmail) {
           const score = result.safetyScore;
@@ -320,7 +315,7 @@
         }
       }
 
-      // Fallback: Gmail Row Sender Name Verification (for unopened rows with hidden emails)
+      // Method C: Fallback to Gmail Row Sender Name
       if (rowContainer) {
         const senderElem = rowContainer.querySelector(".yW span, .zF, .bFj, .yP, td.yX, [email], [data-hovercard-id]") || target;
         const senderName = (senderElem ? senderElem.innerText || senderElem.textContent || "" : "").trim();
@@ -332,7 +327,7 @@
 
           const score = isTrusted ? 100 : 85;
           const shieldSvg = isTrusted
-            ? `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#00ff88" stroke-width="2" stroke-linecap="round" style="vertical-align:middle; margin-right:6px;"><path d="M12 2L3 7V12C3 17.55 6.84 22.74 12 24C17.16 22.74 21 17.55 21 12V7L12 2Z"/><polyline points="9 12 11 14 15 10"/></svg>`
+            ? `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#00ff88" stroke-width="2" stroke-linecap="round" style="vertical-align:middle; margin-right:6px;"><path d="M12 2L3 7V12C3 17.55 6.84 22.74 12 24C17.16 22.74 21 17.55 21 12V7L12 2Z"/><polyline points="9 12 14 15 10"/></svg>`
             : `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#00d2ff" stroke-width="2" stroke-linecap="round" style="vertical-align:middle; margin-right:6px;"><path d="M12 2L3 7V12C3 17.55 6.84 22.74 12 24C17.16 22.74 21 17.55 21 12V7L12 2Z"/><polyline points="9 12 11 14 15 10"/></svg>`;
 
           hoverTooltipEl.style.border = isTrusted ? "1px solid #00ff88" : "1px solid #00d2ff";
