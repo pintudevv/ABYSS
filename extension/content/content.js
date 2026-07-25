@@ -165,28 +165,36 @@
       const el = e.target;
       if (!el || el.nodeType !== 1) return;
 
-      // ── 1. Extract email from the hovered element & its row ──────────────────
+      // ── 1. Extract email ─────────────────────────────────────────────────────
       let email = "";
 
-      // Walk up to find email attribute (Gmail stores it on <span email="...">)
-      let walker = el;
-      for (let i = 0; i < 8 && walker && walker !== document.body; i++) {
-        const attr = walker.getAttribute?.("email") || walker.getAttribute?.("data-hovercard-id") || "";
-        if (attr && attr.includes("@")) { email = attr; break; }
-        walker = walker.parentElement;
+      // Step A: Find the nearest Gmail inbox row container
+      const row = el.closest(".zA") || el.closest("[role='row']") || el.closest("tr");
+
+      // Step B: Search INSIDE the row for any element with an email attribute
+      // (Gmail stores sender email on <span email="sender@domain.com"> which is
+      //  a sibling/child of where you hover, NOT a parent — so we must querySelector)
+      if (row) {
+        const emailEl = row.querySelector("[email]") || row.querySelector("[data-hovercard-id]");
+        if (emailEl) {
+          const attr = emailEl.getAttribute("email") || emailEl.getAttribute("data-hovercard-id") || "";
+          if (attr.includes("@")) email = attr;
+        }
       }
 
-      // mailto: link
+      // Step C: mailto: link
       if (!email) {
         const a = el.closest("a[href^='mailto:']");
         if (a) email = a.href.replace("mailto:", "").split("?")[0];
       }
 
-      // Text content of the element only (not its full subtree)
+      // Step D: Text content of this element only (not subtree to avoid noise)
       if (!email) {
         const txt = (el.innerText || el.textContent || "").trim();
-        const m = txt.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/);
-        if (m) email = m[0];
+        if (txt.length < 200) {
+          const m = txt.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/);
+          if (m) email = m[0];
+        }
       }
 
       // ── 2. Show tooltip if we have an email ──────────────────────────────────
